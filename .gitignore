@@ -1,0 +1,49 @@
+# Byte-compiled / temporary files
+__pycache__/
+*.py[cod]
+*.swp
+*.swo
+*.bak
+*.tmp
+*~
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Ansible-related
+*.retry
+*.log
+*.tar.gz
+*.orig
+*.cfg.backup
+
+# SSH and security-sensitive files
+*.pem
+*.key
+*.crt
+.ssh/
+vault_pass.txt
+.vault_pass.txt
+
+# Environment files
+.env
+.env.*
+
+# Inventory or group vars that might be sensitive
+inventory/*.ini
+inventory/*.yml
+group_vars/*/vault.yml
+host_vars/*/vault.yml
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Role dependencies
+roles/*/.galaxy_install_info
+roles/*/meta/.galaxy_info
+
+# Molecule testing files (if using Molecule)
+.molecule/

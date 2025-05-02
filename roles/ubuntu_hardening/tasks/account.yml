@@ -1,0 +1,37 @@
+---
+- name: Set password aging limits in /etc/login.defs
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: "^{{ item.key }}"
+    line: "{{ item.key }} {{ item.value }}"
+  loop:
+    - { key: "PASS_MAX_DAYS", value: "{{ ubuntu_hardening.account.password_aging.max_days }}" }
+    - { key: "PASS_MIN_DAYS", value: "{{ ubuntu_hardening.account.password_aging.min_days }}" }
+    - { key: "PASS_WARN_AGE", value: "{{ ubuntu_hardening.account.password_aging.warn_age }}" }
+  when: ubuntu_hardening.account.password_aging.enabled
+
+- name: Set default umask for users
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: "^UMASK"
+    line: "UMASK 027"
+
+- name: Ensure root is the only UID 0 account
+  ansible.builtin.shell: |
+    cat /etc/passwd | cut -f1,3 -d: | grep ":0$" | cut -f1 -d:
+  register: uid_zero_accounts
+  changed_when: false
+  check_mode: no
+  when: ubuntu_hardening.account.root_check.enabled
+
+- name: Verify only root has UID 0
+  ansible.builtin.assert:
+    that:
+      - uid_zero_accounts.stdout_lines == ['root']
+    fail_msg: "Found non-root accounts with UID 0: {{ uid_zero_accounts.stdout_lines }}"
+  when: ubuntu_hardening.account.root_check.enabled
+
+- name: Lock inactive user accounts after 30 days
+  ansible.builtin.command: useradd -D -f 30
+  changed_when: false
+  when: ubuntu_hardening.account.password_aging.enabled

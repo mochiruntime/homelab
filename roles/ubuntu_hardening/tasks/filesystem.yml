@@ -1,0 +1,36 @@
+---
+- name: Harden /dev/shm mount options
+  ansible.posix.mount:
+    path: /dev/shm
+    src: tmpfs
+    fstype: tmpfs
+    opts: "defaults,nodev,nosuid,noexec"
+    state: mounted
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
+- name: Disable core dumps for all users
+  ansible.builtin.lineinfile:
+    path: /etc/security/limits.conf
+    regexp: "^{{ item.domain }}\\s+{{ item.type }}\\s+core"
+    line: "{{ item.domain }} {{ item.type }} core 0"
+    insertbefore: "^# End of file"
+  loop:
+    - { domain: "*", type: "hard" }
+    - { domain: "*", type: "soft" }
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
+- name: Disable core dumps via sysctl
+  ansible.builtin.sysctl:
+    name: fs.suid_dumpable
+    value: 0
+    state: present
+    reload: yes
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
+- name: Restrict access to /var/log/syslog
+  ansible.builtin.file:
+    path: /var/log/syslog
+    mode: '0640'
+    owner: syslog
+    group: adm
+  when: ubuntu_hardening.filesystem.hardening.enabled

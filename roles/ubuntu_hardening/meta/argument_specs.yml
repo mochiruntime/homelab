@@ -1,0 +1,172 @@
+---
+argument_specs:
+  main:
+    short_description: "Production-grade hardening for Ubuntu 24.04 LTS"
+    description: "This role secures Ubuntu 24.04 servers by applying SSH, firewall, network, and system hardening measures."
+    author: github.com/mochiruntime
+    options:
+      ubuntu_hardening:
+        type: "dict"
+        description: "Core configuration object for the hardening role."
+        required: true
+        options:
+          ssh:
+            type: "dict"
+            description: "SSH hardening settings."
+            options:
+              enabled:
+                type: "bool"
+                default: true
+                description: "Whether to apply SSH hardening."
+              port:
+                type: "int"
+                default: 22
+                description: "The SSH port to listen on."
+              permit_root_login:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no", "prohibit-password"]
+                description: "Specifies whether root can log in using ssh."
+              password_authentication:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no"]
+                description: "Specifies whether password authentication is allowed."
+              allow_groups:
+                type: "list"
+                elements: "str"
+                default: ["sudo"]
+                description: "List of group names that are allowed to log in via SSH."
+              modern_algorithms:
+                type: "dict"
+                description: "Modern ciphers, MACs and Kex algorithms."
+                options:
+                  ciphers:
+                    type: "list"
+                    elements: "str"
+                    description: "List of secure ciphers to allow."
+                  macs:
+                    type: "list"
+                    elements: "str"
+                    description: "List of secure MAC algorithms to allow."
+                  kex:
+                    type: "list"
+                    elements: "str"
+                    description: "List of secure Key Exchange algorithms to allow."
+          firewall:
+            type: "dict"
+            description: "UFW firewall settings."
+            options:
+              enabled:
+                type: "bool"
+                default: true
+                description: "Whether to enable UFW."
+              default_incoming_policy:
+                type: "str"
+                default: "deny"
+                choices: ["allow", "deny", "reject"]
+                description: "Default policy for incoming traffic."
+              allow_ports:
+                type: "list"
+                elements: "dict"
+                description: "List of ports to allow (e.g., {port: 22, proto: 'tcp'})."
+          system:
+            type: "dict"
+            description: "System-level hardening and package management."
+            options:
+              package_removal:
+                type: "dict"
+                description: "Insecure package removal settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to remove insecure packages."
+                  packages:
+                    type: "list"
+                    elements: "str"
+                    description: "List of packages to remove."
+              unattended_upgrades:
+                type: "dict"
+                description: "Unattended upgrades configuration."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to enable automatic security updates."
+                  mail:
+                    type: "str"
+                    default: ""
+                    description: "Email address to send update notifications to."
+                  remove_unused:
+                    type: "bool"
+                    default: true
+                    description: "Remove unused dependencies after updates."
+              auditd:
+                type: "dict"
+                description: "Auditd service settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to enable and start auditd."
+          network:
+            type: "dict"
+            description: "Network hardening via sysctl."
+            options:
+              sysctl:
+                type: "dict"
+                description: "Sysctl hardening settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to apply sysctl parameters."
+                  params:
+                    type: "list"
+                    elements: "dict"
+                    description: "List of sysctl parameters to apply."
+          filesystem:
+            type: "dict"
+            description: "Filesystem hardening settings."
+            options:
+              hardening:
+                type: "dict"
+                description: "General filesystem hardening settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to apply filesystem hardening (mount options, etc.)."
+          account:
+            type: "dict"
+            description: "User account security policies."
+            options:
+              password_aging:
+                type: "dict"
+                description: "Password aging policy settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: false
+                    description: "Whether to enforce password aging limits."
+                  max_days:
+                    type: "int"
+                    default: 90
+                    description: "Maximum number of days a password may be used."
+                  min_days:
+                    type: "int"
+                    default: 7
+                    description: "Minimum number of days between password changes."
+                  warn_age:
+                    type: "int"
+                    default: 7
+                    description: "Number of days warning given before a password expires."
+              root_check:
+                type: "dict"
+                description: "Root account health check settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to verify only root has UID 0."

@@ -1,0 +1,26 @@
+---
+# tasks file for roles/ubuntu_hardening
+
+- name: Include system hardening tasks
+  ansible.builtin.include_tasks: system.yml
+  tags: [system, hardening]
+
+- name: Include network hardening tasks
+  ansible.builtin.include_tasks: network.yml
+  tags: [network, hardening]
+
+- name: Include account hardening tasks
+  ansible.builtin.include_tasks: account.yml
+  tags: [account, hardening]
+
+- name: Include filesystem hardening tasks
+  ansible.builtin.include_tasks: filesystem.yml
+  tags: [filesystem, hardening]
+
+- name: Include SSH hardening tasks
+  ansible.builtin.include_tasks: ssh.yml
+  tags: [ssh, hardening]
+
+- name: Include firewall hardening tasks
+  ansible.builtin.include_tasks: firewall.yml
+  tags: [firewall, hardening]

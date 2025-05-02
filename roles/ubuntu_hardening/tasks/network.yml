@@ -1,0 +1,23 @@
+---
+- name: Apply hardened sysctl parameters
+  ansible.builtin.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+    sysctl_set: yes
+  loop: "{{ ubuntu_hardening.network.sysctl.params }}"
+  when: ubuntu_hardening.network.sysctl.enabled
+
+- name: Disable ICMP redirects
+  ansible.builtin.sysctl:
+    name: "{{ item }}"
+    value: 0
+    state: present
+    reload: yes
+  loop:
+    - net.ipv4.conf.all.accept_redirects
+    - net.ipv4.conf.default.accept_redirects
+    - net.ipv6.conf.all.accept_redirects
+    - net.ipv6.conf.default.accept_redirects
+  when: ubuntu_hardening.network.sysctl.enabled

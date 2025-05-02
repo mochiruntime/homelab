@@ -1,0 +1,55 @@
+---
+- name: Ensure the system is up to date
+  ansible.builtin.apt:
+    update_cache: yes
+    upgrade: dist
+    cache_valid_time: 3600
+
+- name: Install security related packages
+  ansible.builtin.apt:
+    name:
+      - apparmor-profiles
+      - apparmor-utils
+      - audispd-plugins
+      - auditd
+      - fail2ban
+      - libpam-tmpdir
+      - ufw
+      - unattended-upgrades
+    state: present
+
+- name: Remove insecure or unnecessary packages
+  ansible.builtin.apt:
+    name: "{{ ubuntu_hardening.system.package_removal.packages }}"
+    state: absent
+    purge: yes
+  when: ubuntu_hardening.system.package_removal.enabled
+
+- name: Configure Unattended Upgrades
+  ansible.builtin.template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  when: ubuntu_hardening.system.unattended_upgrades.enabled
+
+- name: Enable Unattended Upgrades
+  ansible.builtin.copy:
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  when: ubuntu_hardening.system.unattended_upgrades.enabled
+
+- name: Ensure Auditd is running and enabled
+  ansible.builtin.service:
+    name: auditd
+    state: started
+    enabled: yes
+  when: ubuntu_hardening.system.auditd.enabled

@@ -1,0 +1,94 @@
+---
+# defaults file for roles/ubuntu_hardening
+
+ubuntu_hardening:
+  # SSH Configuration
+  ssh:
+    enabled: true
+    port: 22
+    permit_root_login: "no"
+    password_authentication: "no"
+    allow_groups: ["sudo"]
+    modern_algorithms:
+      ciphers:
+        - "chacha20-poly1305@openssh.com"
+        - "aes256-gcm@openssh.com"
+        - "aes128-gcm@openssh.com"
+        - "aes256-ctr"
+        - "aes192-ctr"
+        - "aes128-ctr"
+      macs:
+        - "hmac-sha2-512-etm@openssh.com"
+        - "hmac-sha2-256-etm@openssh.com"
+        - "umac-128-etm@openssh.com"
+      kex:
+        - "curve25519-sha256@libssh.org"
+        - "diffie-hellman-group-exchange-sha256"
+
+  # Firewall Configuration
+  firewall:
+    enabled: true
+    default_incoming_policy: "deny"
+    allow_ports:
+      - { port: 22, proto: "tcp" }
+
+  # System Hardening
+  system:
+    package_removal:
+      enabled: true
+      packages:
+        - telnet
+        - rsh-client
+        - rlogin
+        - rcp
+        - talk
+        - nis
+        - yp-tools
+    unattended_upgrades:
+      enabled: true
+      mail: ""
+      remove_unused: true
+    auditd:
+      enabled: true
+
+  # Network (Sysctl)
+  network:
+    sysctl:
+      enabled: true
+      params:
+        # IP Spoofing protection
+        - { name: "net.ipv4.conf.all.rp_filter", value: 1 }
+        - { name: "net.ipv4.conf.default.rp_filter", value: 1 }
+        # Ignore ICMP broadcast requests
+        - { name: "net.ipv4.icmp_echo_ignore_broadcasts", value: 1 }
+        # Disable source packet routing
+        - { name: "net.ipv4.conf.all.accept_source_route", value: 0 }
+        - { name: "net.ipv6.conf.all.accept_source_route", value: 0 }
+        - { name: "net.ipv4.conf.default.accept_source_route", value: 0 }
+        - { name: "net.ipv6.conf.default.accept_source_route", value: 0 }
+        # Ignore send redirects
+        - { name: "net.ipv4.conf.all.send_redirects", value: 0 }
+        - { name: "net.ipv4.conf.default.send_redirects", value: 0 }
+        # Ignore ICMP redirects
+        - { name: "net.ipv4.conf.all.accept_redirects", value: 0 }
+        - { name: "net.ipv4.conf.default.accept_redirects", value: 0 }
+        - { name: "net.ipv6.conf.all.accept_redirects", value: 0 }
+        - { name: "net.ipv6.conf.default.accept_redirects", value: 0 }
+        # Log Martians
+        - { name: "net.ipv4.conf.all.log_martians", value: 1 }
+        - { name: "net.ipv4.conf.default.log_martians", value: 1 }
+
+  # Filesystem Hardening
+  filesystem:
+    hardening:
+      enabled: true
+
+  # Account Policy
+  account:
+    password_aging:
+      enabled: false
+      max_days: 90
+      min_days: 7
+      warn_age: 7
+    root_check:
+      enabled: true

@@ -1,0 +1,47 @@
+# Hardened SSH Configuration for Ubuntu 24.04
+# Managed by Ansible
+
+Port {{ ubuntu_hardening.ssh.port }}
+Protocol 2
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Logging
+SyslogFacility AUTHPRIV
+LogLevel VERBOSE
+
+# Authentication
+LoginGraceTime 30
+PermitRootLogin {{ ubuntu_hardening.ssh.permit_root_login }}
+StrictModes yes
+MaxAuthTries 3
+MaxSessions 2
+
+PubkeyAuthentication yes
+PasswordAuthentication {{ ubuntu_hardening.ssh.password_authentication }}
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+UsePAM yes
+
+# Access Control
+{% if ubuntu_hardening.ssh.allow_groups %}
+AllowGroups {{ ubuntu_hardening.ssh.allow_groups | join(' ') }}
+{% endif %}
+
+# Forwarding and Tunneling
+X11Forwarding no
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Hardened Algorithms
+Ciphers {{ ubuntu_hardening.ssh.modern_algorithms.ciphers | join(',') }}
+MACs {{ ubuntu_hardening.ssh.modern_algorithms.macs | join(',') }}
+KexAlgorithms {{ ubuntu_hardening.ssh.modern_algorithms.kex | join(',') }}
+
+# Misc
+UseDNS no
+Banner none
+ClientAliveInterval 300
+ClientAliveCountMax 2
