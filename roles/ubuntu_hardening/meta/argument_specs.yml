@@ -114,6 +114,14 @@ argument_specs:
             type: "dict"
             description: "Network hardening via sysctl."
             options:
+              ipv6:
+                type: "dict"
+                description: "IPv6 configuration."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether IPv6 is enabled on the system."
               sysctl:
                 type: "dict"
                 description: "Sysctl hardening settings."
@@ -138,6 +146,14 @@ argument_specs:
                     type: "bool"
                     default: true
                     description: "Whether to apply filesystem hardening (mount options, etc.)."
+              sensitive_files:
+                type: "dict"
+                description: "Sensitive system file permissions security."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to enforce owner and permissions on /etc/passwd, /etc/shadow, etc."
           account:
             type: "dict"
             description: "User account security policies."
@@ -170,3 +186,19 @@ argument_specs:
                     type: "bool"
                     default: true
                     description: "Whether to verify only root has UID 0."
+              root_hardening:
+                type: "dict"
+                description: "Root account security hardening."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to lock the root password and set shell to nologin."
+              sudo_password_required:
+                type: "dict"
+                description: "Sudoers security hardening."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to ensure password is required for sudo by removing NOPASSWD."

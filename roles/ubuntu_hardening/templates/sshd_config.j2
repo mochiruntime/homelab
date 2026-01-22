@@ -2,6 +2,7 @@
 # Managed by Ansible
 
 Port {{ ubuntu_hardening.ssh.port }}
+AddressFamily {{ 'any' if ubuntu_hardening.network.ipv6.enabled else 'inet' }}
 Protocol 2
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ecdsa_key

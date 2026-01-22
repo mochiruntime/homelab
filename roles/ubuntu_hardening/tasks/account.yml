@@ -5,9 +5,12 @@
     regexp: "^{{ item.key }}"
     line: "{{ item.key }} {{ item.value }}"
   loop:
-    - { key: "PASS_MAX_DAYS", value: "{{ ubuntu_hardening.account.password_aging.max_days }}" }
-    - { key: "PASS_MIN_DAYS", value: "{{ ubuntu_hardening.account.password_aging.min_days }}" }
-    - { key: "PASS_WARN_AGE", value: "{{ ubuntu_hardening.account.password_aging.warn_age }}" }
+    - key: PASS_MAX_DAYS
+      value: "{{ ubuntu_hardening.account.password_aging.max_days }}"
+    - key: PASS_MIN_DAYS
+      value: "{{ ubuntu_hardening.account.password_aging.min_days }}"
+    - key: PASS_WARN_AGE
+      value: "{{ ubuntu_hardening.account.password_aging.warn_age }}"
   when: ubuntu_hardening.account.password_aging.enabled
 
 - name: Set default umask for users
@@ -31,7 +34,31 @@
     fail_msg: "Found non-root accounts with UID 0: {{ uid_zero_accounts.stdout_lines }}"
   when: ubuntu_hardening.account.root_check.enabled
 
+- name: Lock root account and set nologin shell
+  ansible.builtin.user:
+    name: root
+    password_lock: yes
+    shell: /usr/sbin/nologin
+  when: ubuntu_hardening.account.root_hardening.enabled
+
 - name: Lock inactive user accounts after 30 days
   ansible.builtin.command: useradd -D -f 30
   changed_when: false
   when: ubuntu_hardening.account.password_aging.enabled
+
+- name: Find all sudoers files
+  ansible.builtin.find:
+    paths:
+      - /etc/sudoers.d
+    file_type: file
+  register: sudoers_files
+  when: ubuntu_hardening.account.sudo_password_required.enabled
+
+- name: Enforce password requirement in sudoers files
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: "NOPASSWD:"
+    replace: "PASSWD:"
+    validate: /usr/sbin/visudo -cf %s
+  loop: "{{ [ '/etc/sudoers' ] + (sudoers_files.files | map(attribute='path') | list) }}"
+  when: ubuntu_hardening.account.sudo_password_required.enabled

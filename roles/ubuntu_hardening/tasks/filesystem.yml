@@ -15,8 +15,10 @@
     line: "{{ item.domain }} {{ item.type }} core 0"
     insertbefore: "^# End of file"
   loop:
-    - { domain: "*", type: "hard" }
-    - { domain: "*", type: "soft" }
+    - domain: "*"
+      type: hard
+    - domain: "*"
+      type: soft
   when: ubuntu_hardening.filesystem.hardening.enabled
 
 - name: Disable core dumps via sysctl
@@ -30,7 +32,26 @@
 - name: Restrict access to /var/log/syslog
   ansible.builtin.file:
     path: /var/log/syslog
-    mode: '0640'
+    mode: "0640"
     owner: syslog
     group: adm
   when: ubuntu_hardening.filesystem.hardening.enabled
+
+- name: Enforce sensitive file permissions and ownership
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: root
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - path: /etc/passwd
+      mode: "0644"
+    - path: /etc/shadow
+      mode: "0640"
+      group: shadow
+    - path: /etc/group
+      mode: "0644"
+    - path: /etc/gshadow
+      mode: "0640"
+      group: shadow
+  when: ubuntu_hardening.filesystem.sensitive_files.enabled

@@ -4,9 +4,12 @@
     direction: "{{ item.direction }}"
     policy: "{{ item.policy }}"
   loop:
-    - { direction: "incoming", policy: "{{ ubuntu_hardening.firewall.default_incoming_policy }}" }
-    - { direction: "outgoing", policy: "allow" }
-    - { direction: "routed", policy: "deny" }
+    - direction: incoming
+      policy: "{{ ubuntu_hardening.firewall.default_incoming_policy }}"
+    - direction: outgoing
+      policy: allow
+    - direction: routed
+      policy: deny
 
 - name: Allow specified ports in UFW
   community.general.ufw:
@@ -33,5 +36,5 @@
     dest: /etc/fail2ban/jail.local
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   notify: restart fail2ban
