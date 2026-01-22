@@ -35,8 +35,13 @@ argument_specs:
               allow_groups:
                 type: "list"
                 elements: "str"
-                default: ["sudo"]
+                default: []
                 description: "List of group names that are allowed to log in via SSH."
+              allow_users:
+                type: "list"
+                elements: "str"
+                default: []
+                description: "List of user names that are allowed to log in via SSH."
               modern_algorithms:
                 type: "dict"
                 description: "Modern ciphers, MACs and Kex algorithms."

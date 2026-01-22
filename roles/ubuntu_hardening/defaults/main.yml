@@ -8,8 +8,8 @@ ubuntu_hardening:
     port: 22
     permit_root_login: "no"
     password_authentication: "no"
-    allow_groups:
-      - sudo
+    allow_groups: []
+    allow_users: []
     modern_algorithms:
       ciphers:
         - "chacha20-poly1305@openssh.com"

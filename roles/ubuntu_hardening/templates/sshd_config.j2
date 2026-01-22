@@ -29,6 +29,9 @@ UsePAM yes
 {% if ubuntu_hardening.ssh.allow_groups %}
 AllowGroups {{ ubuntu_hardening.ssh.allow_groups | join(' ') }}
 {% endif %}
+{% if ubuntu_hardening.ssh.allow_users %}
+AllowUsers {{ ubuntu_hardening.ssh.allow_users | join(' ') }}
+{% endif %}
 
 # Forwarding and Tunneling
 X11Forwarding no
