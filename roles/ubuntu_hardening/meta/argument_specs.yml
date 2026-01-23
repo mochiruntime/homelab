@@ -75,6 +75,29 @@ argument_specs:
                 type: "list"
                 elements: "dict"
                 description: "List of ports to allow (e.g., {port: 22, proto: 'tcp'})."
+              ssh_access:
+                type: "dict"
+                description: "Restricted SSH access settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: false
+                    description: "Whether to enable restricted SSH access."
+                  rules:
+                    type: "list"
+                    elements: "dict"
+                    default: []
+                    description: "List of allowed combinations for SSH access."
+                    options:
+                      source_ip:
+                        type: "str"
+                        description: "Source IP or network (e.g., 192.168.1.0/24)."
+                      interface:
+                        type: "str"
+                        description: "Network interface (e.g., eth0)."
+                      dest_ip:
+                        type: "str"
+                        description: "Destination IP address."
           system:
             type: "dict"
             description: "System-level hardening and package management."

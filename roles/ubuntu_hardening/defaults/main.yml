@@ -30,9 +30,10 @@ ubuntu_hardening:
   firewall:
     enabled: true
     default_incoming_policy: "deny"
-    allow_ports:
-      - port: 22
-        proto: tcp
+    allow_ports: []
+    ssh_access:
+      enabled: false
+      rules: []
 
   # System Hardening
   system:

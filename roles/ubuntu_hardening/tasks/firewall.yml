@@ -17,6 +17,20 @@
     port: "{{ item.port | string }}"
     proto: "{{ item.proto | default('tcp') }}"
   loop: "{{ ubuntu_hardening.firewall.allow_ports }}"
+  when: >
+    not (ubuntu_hardening.firewall.ssh_access.enabled and
+    (item.port | string == ubuntu_hardening.ssh.port | string))
+
+- name: Allow restricted SSH access in UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ ubuntu_hardening.ssh.port | string }}"
+    proto: tcp
+    from_ip: "{{ item.source_ip | default('any') }}"
+    to_ip: "{{ item.dest_ip | default('any') }}"
+    interface: "{{ item.interface | default(omit) }}"
+  loop: "{{ ubuntu_hardening.firewall.ssh_access.rules }}"
+  when: ubuntu_hardening.firewall.ssh_access.enabled
 
 - name: Enable UFW
   community.general.ufw:
