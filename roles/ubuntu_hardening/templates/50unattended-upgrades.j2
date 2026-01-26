@@ -14,7 +14,7 @@ Unattended-Upgrade::Package-Blacklist {
 // a reboot will be performed automatically.
 Unattended-Upgrade::Automatic-Reboot "true";
 Unattended-Upgrade::Automatic-Reboot-Time "03:00";
-Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "{{ ubuntu_hardening.system.unattended_upgrades.automatic_reboot_with_users | lower }}";
 
 // If this option is set to true, unattended-upgrades will take care of
 // the cleaning of the apt archive (clean out old .deb files).

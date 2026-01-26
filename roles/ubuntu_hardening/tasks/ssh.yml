@@ -3,7 +3,7 @@
   ansible.builtin.file:
     path: /etc/ssh
     state: directory
-    mode: '0755'
+    mode: "0755"
   when: ubuntu_hardening.ssh.enabled
 
 - name: Apply hardened sshd_config
@@ -12,9 +12,20 @@
     dest: /etc/ssh/sshd_config
     owner: root
     group: root
-    mode: '0600'
+    mode: "0600"
     validate: "/usr/sbin/sshd -t -f %s"
   notify: restart ssh
+  when: ubuntu_hardening.ssh.enabled
+
+- name: SSH Lockout Safeguard
+  ansible.builtin.assert:
+    that:
+      - >
+        ubuntu_hardening.ssh.password_authentication == 'yes' or
+        ubuntu_hardening.ssh.allow_users | length > 0 or
+        ubuntu_hardening.ssh.allow_groups | length > 0
+    fail_msg: "CRITICAL: Password authentication is disabled but neither AllowUsers nor AllowGroups are defined. You might lock yourself out."
+    success_msg: "SSH access safeguard passed."
   when: ubuntu_hardening.ssh.enabled
 
 - name: Ensure SSH is enabled and running

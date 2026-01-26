@@ -1,7 +1,7 @@
 ---
 # defaults file for roles/ubuntu_hardening
 
-ubuntu_hardening:
+ubuntu_hardening_defaults:
   # SSH Configuration
   ssh:
     enabled: true
@@ -15,16 +15,21 @@ ubuntu_hardening:
         - "chacha20-poly1305@openssh.com"
         - "aes256-gcm@openssh.com"
         - "aes128-gcm@openssh.com"
-        - "aes256-ctr"
-        - "aes192-ctr"
-        - "aes128-ctr"
       macs:
         - "hmac-sha2-512-etm@openssh.com"
         - "hmac-sha2-256-etm@openssh.com"
         - "umac-128-etm@openssh.com"
       kex:
         - "curve25519-sha256@libssh.org"
-        - "diffie-hellman-group-exchange-sha256"
+    authentication_methods: "publickey"
+    allow_tcp_forwarding: "no"
+    permit_tunnel: "no"
+    host_based_authentication: "no"
+    gssapi_authentication: "no"
+    permit_user_environment: "no"
+    max_startups: "10:30:60"
+    ignore_rhosts: "yes"
+    allow_agent_forwarding: "no"
 
   # Firewall Configuration
   firewall:
@@ -32,11 +37,13 @@ ubuntu_hardening:
     default_incoming_policy: "deny"
     allow_ports: []
     ssh_access:
-      enabled: false
-      rules: []
+      enabled: true
+      rules:
+        - source_ip: 0.0.0.0
 
   # System Hardening
   system:
+    upgrade_type: dist
     package_removal:
       enabled: true
       packages:
@@ -51,13 +58,19 @@ ubuntu_hardening:
       enabled: true
       mail: ""
       remove_unused: true
+      automatic_reboot_with_users: true
     auditd:
       enabled: true
+      apply_rules: true
+    aide:
+      enabled: false
+      init: false
 
   # Network (Sysctl)
   network:
     ipv6:
-      enabled: false
+      enabled: true
+      disable_at_boot: false
     sysctl:
       enabled: true
       params:
@@ -97,11 +110,26 @@ ubuntu_hardening:
           value: 1
         - name: net.ipv4.conf.default.log_martians
           value: 1
+        # Additional Kernel & Network Hardening
+        - name: kernel.randomize_va_space
+          value: 2
+        - name: kernel.kptr_restrict
+          value: 2
+        - name: kernel.dmesg_restrict
+          value: 1
+        - name: kernel.unprivileged_bpf_disabled
+          value: 1
+        - name: net.ipv4.tcp_syncookies
+          value: 1
+        - name: net.ipv4.icmp_ignore_bogus_error_responses
+          value: 1
 
   # Filesystem Hardening
   filesystem:
     hardening:
       enabled: true
+      shm_noexec: true
+      tmpfs_tmp: false
     sensitive_files:
       enabled: true
 
@@ -114,7 +142,25 @@ ubuntu_hardening:
       warn_age: 7
     root_check:
       enabled: true
-    root_hardening:
-      enabled: true
     sudo_password_required:
       enabled: true
+    pam:
+      pwquality:
+        enabled: true
+        minlen: 11
+        dcredit: -1
+        ucredit: -1
+        ocredit: -1
+        lcredit: -1
+        maxrepeat: 3
+      faillock:
+        enabled: false
+        deny: 5
+        unlock_time: 900
+        exempt_users: []
+      password_history:
+        enabled: false
+        remember: 5
+      restrict_su:
+        enabled: true
+        group: sudo

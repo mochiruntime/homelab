@@ -1,10 +1,38 @@
 ---
+- name: Harden /tmp
+  ansible.posix.mount:
+    path: /tmp
+    src: tmpfs
+    fstype: tmpfs
+    opts: defaults,nodev,nosuid,noexec
+    state: mounted
+  when:
+    - ubuntu_hardening.filesystem.hardening.enabled
+    - ubuntu_hardening.filesystem.hardening.tmpfs_tmp
+
+- name: Bind-mount /var/tmp to /tmp
+  ansible.posix.mount:
+    path: /var/tmp
+    src: /tmp
+    fstype: none
+    opts: bind
+    state: mounted
+  when:
+    - ubuntu_hardening.filesystem.hardening.enabled
+    - ubuntu_hardening.filesystem.hardening.tmpfs_tmp
+
+- name: Enforce sticky bit on world-writable directories
+  ansible.builtin.shell: |
+    find / -xdev -type d \( -perm -0002 -a ! -perm -1000 \) -exec chmod +t {} +
+  changed_when: false
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
 - name: Harden /dev/shm mount options
   ansible.posix.mount:
     path: /dev/shm
     src: tmpfs
     fstype: tmpfs
-    opts: "defaults,nodev,nosuid,noexec"
+    opts: "defaults,nodev,nosuid{{ ',noexec' if ubuntu_hardening.filesystem.hardening.shm_noexec else '' }}"
     state: mounted
   when: ubuntu_hardening.filesystem.hardening.enabled
 
@@ -29,13 +57,21 @@
     reload: yes
   when: ubuntu_hardening.filesystem.hardening.enabled
 
+- name: Check if /var/log/syslog exists
+  ansible.builtin.stat:
+    path: /var/log/syslog
+  register: syslog_file
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
 - name: Restrict access to /var/log/syslog
   ansible.builtin.file:
     path: /var/log/syslog
     mode: "0640"
     owner: syslog
     group: adm
-  when: ubuntu_hardening.filesystem.hardening.enabled
+  when:
+    - ubuntu_hardening.filesystem.hardening.enabled
+    - syslog_file.stat.exists
 
 - name: Enforce sensitive file permissions and ownership
   ansible.builtin.file:

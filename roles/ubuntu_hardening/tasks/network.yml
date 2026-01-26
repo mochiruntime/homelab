@@ -1,4 +1,21 @@
 ---
+- name: Disable IPv6 via GRUB
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX="(.*)"'
+    line: 'GRUB_CMDLINE_LINUX="\1 ipv6.disable=1"'
+    backrefs: yes
+  notify: update grub
+  when: ubuntu_hardening.network.ipv6.disable_at_boot
+
+- name: Disable IPv6 in UFW
+  ansible.builtin.lineinfile:
+    path: /etc/default/ufw
+    regexp: "^IPV6="
+    line: "IPV6=no"
+  notify: reload ufw
+  when: not ubuntu_hardening.network.ipv6.enabled
+
 - name: Disable IPv6
   ansible.builtin.sysctl:
     name: "{{ item }}"
@@ -19,17 +36,4 @@
     reload: yes
     sysctl_set: yes
   loop: "{{ ubuntu_hardening.network.sysctl.params }}"
-  when: ubuntu_hardening.network.sysctl.enabled
-
-- name: Disable ICMP redirects
-  ansible.builtin.sysctl:
-    name: "{{ item }}"
-    value: 0
-    state: present
-    reload: yes
-  loop:
-    - net.ipv4.conf.all.accept_redirects
-    - net.ipv4.conf.default.accept_redirects
-    - net.ipv6.conf.all.accept_redirects
-    - net.ipv6.conf.default.accept_redirects
   when: ubuntu_hardening.network.sysctl.enabled

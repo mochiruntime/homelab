@@ -19,32 +19,44 @@
     regexp: "^UMASK"
     line: "UMASK 027"
 
-- name: Ensure root is the only UID 0 account
-  ansible.builtin.shell: |
-    cat /etc/passwd | cut -f1,3 -d: | grep ":0$" | cut -f1 -d:
+- name: Get all accounts with UID 0
+  ansible.builtin.getent:
+    database: passwd
+    key: 0
+    split: ":"
   register: uid_zero_accounts
-  changed_when: false
-  check_mode: no
   when: ubuntu_hardening.account.root_check.enabled
 
 - name: Verify only root has UID 0
   ansible.builtin.assert:
     that:
-      - uid_zero_accounts.stdout_lines == ['root']
-    fail_msg: "Found non-root accounts with UID 0: {{ uid_zero_accounts.stdout_lines }}"
+      - >
+        ansible_facts.getent_passwd
+        | dict2items
+        | selectattr('value.1', 'equalto', '0')
+        | map(attribute='key')
+        | list == ['root']
+    fail_msg: "Found non-root accounts with UID 0: {{ ansible_facts.getent_passwd | dict2items | selectattr('value.1', 'equalto', '0') | map(attribute='key') | list }}"
   when: ubuntu_hardening.account.root_check.enabled
 
-- name: Lock root account and set nologin shell
-  ansible.builtin.user:
-    name: root
-    password_lock: yes
-    shell: /usr/sbin/nologin
-  when: ubuntu_hardening.account.root_hardening.enabled
-
-- name: Lock inactive user accounts after 30 days
+- name: Set default inactivity lockout for new accounts
   ansible.builtin.command: useradd -D -f 30
   changed_when: false
   when: ubuntu_hardening.account.password_aging.enabled
+
+- name: Get list of existing users
+  ansible.builtin.getent:
+    database: passwd
+  when: ubuntu_hardening.account.password_aging.enabled
+
+- name: Lock inactive existing user accounts after 30 days
+  ansible.builtin.command: "chage --inactive 30 {{ item.key }}"
+  loop: "{{ ansible_facts.getent_passwd | dict2items }}"
+  when:
+    - ubuntu_hardening.account.password_aging.enabled
+    - "item.value[1] | int >= 1000" # Only apply to regular users
+    - "item.key != 'nobody'"
+  changed_when: false
 
 - name: Find all sudoers files
   ansible.builtin.find:
@@ -61,4 +73,118 @@
     replace: "PASSWD:"
     validate: /usr/sbin/visudo -cf %s
   loop: "{{ [ '/etc/sudoers' ] + (sudoers_files.files | map(attribute='path') | list) }}"
-  when: ubuntu_hardening.account.sudo_password_required.enabled
+  when:
+    - ubuntu_hardening.account.sudo_password_required.enabled
+
+- name: Install PAM quality library
+  ansible.builtin.apt:
+    name: libpam-pwquality
+    state: present
+  when: ubuntu_hardening.account.pam.pwquality.enabled
+
+- name: Configure password complexity in /etc/security/pwquality.conf
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: "^{{ item.key }}"
+    line: "{{ item.key }} = {{ item.value }}"
+  loop:
+    - key: minlen
+      value: "{{ ubuntu_hardening.account.pam.pwquality.minlen }}"
+    - key: dcredit
+      value: "{{ ubuntu_hardening.account.pam.pwquality.dcredit }}"
+    - key: ucredit
+      value: "{{ ubuntu_hardening.account.pam.pwquality.ucredit }}"
+    - key: ocredit
+      value: "{{ ubuntu_hardening.account.pam.pwquality.ocredit }}"
+    - key: lcredit
+      value: "{{ ubuntu_hardening.account.pam.pwquality.lcredit }}"
+    - key: maxrepeat
+      value: "{{ ubuntu_hardening.account.pam.pwquality.maxrepeat }}"
+  when: ubuntu_hardening.account.pam.pwquality.enabled
+
+- name: Configure password history in /etc/pam.d/common-password
+  community.general.pamd:
+    name: common-password
+    type: password
+    control: "[success=1 default=ignore]"
+    module_path: pam_unix.so
+    module_arguments: "obscure use_authtok try_first_pass yescrypt remember={{ ubuntu_hardening.account.pam.password_history.remember }}"
+    state: updated
+  when: ubuntu_hardening.account.pam.password_history.enabled
+
+- name: Enable pam_pwquality in /etc/pam.d/common-password
+  community.general.pamd:
+    name: common-password
+    type: password
+    control: requisite
+    module_path: pam_pwquality.so
+    module_arguments: "retry=3"
+    state: updated
+  when: ubuntu_hardening.account.pam.pwquality.enabled
+
+- name: Ensure faillock exempt users are defined
+  ansible.builtin.assert:
+    that:
+      - ubuntu_hardening.account.pam.faillock.exempt_users | length > 0
+    fail_msg: >
+      pam_faillock is enabled but no exempt_users are defined.
+      This may lock out automation or recovery accounts.
+  when: ubuntu_hardening.account.pam.faillock.enabled
+
+- name: Configure account lockout preauth in /etc/pam.d/common-auth
+  community.general.pamd:
+    name: common-auth
+    type: auth
+    control: required
+    module_path: pam_faillock.so
+    module_arguments: "preauth silent audit deny={{ ubuntu_hardening.account.pam.faillock.deny }} unlock_time={{ ubuntu_hardening.account.pam.faillock.unlock_time }}{{ ' except=' + (ubuntu_hardening.account.pam.faillock.exempt_users | join(',')) if ubuntu_hardening.account.pam.faillock.exempt_users else '' }}"
+    state: before
+    insertbefore: pam_unix.so
+  when: ubuntu_hardening.account.pam.faillock.enabled
+
+- name: Configure account lockout authfail in /etc/pam.d/common-auth
+  community.general.pamd:
+    name: common-auth
+    type: auth
+    control: "[default=die]"
+    module_path: pam_faillock.so
+    module_arguments: "authfail audit deny={{ ubuntu_hardening.account.pam.faillock.deny }} unlock_time={{ ubuntu_hardening.account.pam.faillock.unlock_time }}{{ ' except=' + (ubuntu_hardening.account.pam.faillock.exempt_users | join(',')) if ubuntu_hardening.account.pam.faillock.exempt_users else '' }}"
+    state: after
+    insertafter: pam_unix.so
+  when: ubuntu_hardening.account.pam.faillock.enabled
+
+- name: Configure account lockout authsucc in /etc/pam.d/common-auth
+  community.general.pamd:
+    name: common-auth
+    type: auth
+    control: sufficient
+    module_path: pam_faillock.so
+    module_arguments: "authsucc audit deny={{ ubuntu_hardening.account.pam.faillock.deny }} unlock_time={{ ubuntu_hardening.account.pam.faillock.unlock_time }}{{ ' except=' + (ubuntu_hardening.account.pam.faillock.exempt_users | join(',')) if ubuntu_hardening.account.pam.faillock.exempt_users else '' }}"
+    state: after
+    insertafter: pam_faillock.so # Matches the one added by authfail
+  when: ubuntu_hardening.account.pam.faillock.enabled
+
+- name: Configure account lockout in /etc/pam.d/common-account
+  community.general.pamd:
+    name: common-account
+    type: account
+    control: required
+    module_path: pam_faillock.so
+    state: updated
+  when: ubuntu_hardening.account.pam.faillock.enabled
+
+- name: Ensure group for su restriction exists
+  ansible.builtin.group:
+    name: "{{ ubuntu_hardening.account.pam.restrict_su.group }}"
+    state: present
+  when: ubuntu_hardening.account.pam.restrict_su.enabled
+
+- name: Restrict su to specific group
+  community.general.pamd:
+    name: su
+    type: auth
+    control: required
+    module_path: pam_wheel.so
+    module_arguments: "use_uid group={{ ubuntu_hardening.account.pam.restrict_su.group }}"
+    state: updated
+  when: ubuntu_hardening.account.pam.restrict_su.enabled

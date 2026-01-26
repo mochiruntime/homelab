@@ -1,4 +1,15 @@
 ---
+- name: Ensure SSH port is allowed before enabling UFW
+  ansible.builtin.assert:
+    that:
+      - >
+        (not ubuntu_hardening.firewall.ssh_access.enabled and
+         ubuntu_hardening.firewall.allow_ports | selectattr('port', 'equalto', ubuntu_hardening.ssh.port) | list | length > 0) or
+        (ubuntu_hardening.firewall.ssh_access.enabled and
+         ubuntu_hardening.firewall.ssh_access.rules | length > 0)
+    fail_msg: "SSH port is not allowed in UFW rules – aborting to prevent lockout"
+  when: ubuntu_hardening.firewall.enabled
+
 - name: Set UFW default policies
   community.general.ufw:
     direction: "{{ item.direction }}"
@@ -10,6 +21,7 @@
       policy: allow
     - direction: routed
       policy: deny
+  when: ubuntu_hardening.firewall.enabled
 
 - name: Allow specified ports in UFW
   community.general.ufw:
@@ -17,9 +29,10 @@
     port: "{{ item.port | string }}"
     proto: "{{ item.proto | default('tcp') }}"
   loop: "{{ ubuntu_hardening.firewall.allow_ports }}"
-  when: >
-    not (ubuntu_hardening.firewall.ssh_access.enabled and
-    (item.port | string == ubuntu_hardening.ssh.port | string))
+  when:
+    - ubuntu_hardening.firewall.enabled
+    - not (ubuntu_hardening.firewall.ssh_access.enabled and
+      (item.port | string == ubuntu_hardening.ssh.port | string))
 
 - name: Allow restricted SSH access in UFW
   community.general.ufw:
@@ -37,6 +50,13 @@
     state: enabled
   when: ubuntu_hardening.firewall.enabled
 
+- name: Remove legacy Fail2ban SSH jail disable file
+  ansible.builtin.file:
+    path: /etc/fail2ban/jail.d/00-disable-default.conf
+    state: absent
+  notify: restart fail2ban
+  when: ubuntu_hardening.firewall.enabled
+
 - name: Configure Fail2ban for SSH
   ansible.builtin.copy:
     content: |
@@ -47,8 +67,9 @@
       logpath = /var/log/auth.log
       maxretry = 3
       bantime = 1h
-    dest: /etc/fail2ban/jail.local
+    dest: /etc/fail2ban/jail.d/ssh.conf
     owner: root
     group: root
     mode: "0644"
   notify: restart fail2ban
+  when: ubuntu_hardening.firewall.enabled

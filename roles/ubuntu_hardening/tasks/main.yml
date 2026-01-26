@@ -1,6 +1,10 @@
 ---
 # tasks file for roles/ubuntu_hardening
 
+- name: Combine defaults with user variables
+  ansible.builtin.set_fact:
+    ubuntu_hardening: "{{ ubuntu_hardening_defaults | combine(ubuntu_hardening | default({}), recursive=True) }}"
+
 - name: Include system hardening tasks
   ansible.builtin.include_tasks: system.yml
   tags: [system, hardening]

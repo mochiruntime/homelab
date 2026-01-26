@@ -4,9 +4,6 @@
 Port {{ ubuntu_hardening.ssh.port }}
 AddressFamily {{ 'any' if ubuntu_hardening.network.ipv6.enabled else 'inet' }}
 Protocol 2
-HostKey /etc/ssh/ssh_host_rsa_key
-HostKey /etc/ssh/ssh_host_ecdsa_key
-HostKey /etc/ssh/ssh_host_ed25519_key
 
 # Logging
 SyslogFacility AUTHPRIV
@@ -18,12 +15,14 @@ PermitRootLogin {{ ubuntu_hardening.ssh.permit_root_login }}
 StrictModes yes
 MaxAuthTries 3
 MaxSessions 2
+MaxStartups {{ ubuntu_hardening.ssh.max_startups }}
 
 PubkeyAuthentication yes
 PasswordAuthentication {{ ubuntu_hardening.ssh.password_authentication }}
 PermitEmptyPasswords no
 ChallengeResponseAuthentication no
 UsePAM yes
+AuthenticationMethods {{ ubuntu_hardening.ssh.authentication_methods }}
 
 # Access Control
 {% if ubuntu_hardening.ssh.allow_groups %}
@@ -35,9 +34,12 @@ AllowUsers {{ ubuntu_hardening.ssh.allow_users | join(' ') }}
 
 # Forwarding and Tunneling
 X11Forwarding no
+AllowTcpForwarding {{ ubuntu_hardening.ssh.allow_tcp_forwarding }}
+AllowAgentForwarding {{ ubuntu_hardening.ssh.allow_agent_forwarding }}
+PermitTunnel {{ ubuntu_hardening.ssh.permit_tunnel }}
 PrintMotd no
 AcceptEnv LANG LC_*
-Subsystem sftp /usr/lib/openssh/sftp-server
+Subsystem sftp internal-sftp
 
 # Hardened Algorithms
 Ciphers {{ ubuntu_hardening.ssh.modern_algorithms.ciphers | join(',') }}
@@ -49,3 +51,7 @@ UseDNS no
 Banner none
 ClientAliveInterval 300
 ClientAliveCountMax 2
+HostbasedAuthentication {{ ubuntu_hardening.ssh.host_based_authentication }}
+GSSAPIAuthentication {{ ubuntu_hardening.ssh.gssapi_authentication }}
+PermitUserEnvironment {{ ubuntu_hardening.ssh.permit_user_environment }}
+IgnoreRhosts {{ ubuntu_hardening.ssh.ignore_rhosts }}
