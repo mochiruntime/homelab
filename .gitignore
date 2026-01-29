@@ -47,3 +47,6 @@ roles/*/meta/.galaxy_info
 
 # Molecule testing files (if using Molecule)
 .molecule/
+
+# Python
+.venv

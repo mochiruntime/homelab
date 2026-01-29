@@ -1,0 +1,11 @@
+# Core Automation Engine
+ansible-core>=2.17.14
+
+# Testing Frameworks
+molecule==25.12.0
+pytest==8.3.4
+pytest-ansible==26.1.0
+
+# Drivers and Plugins for Vagrant
+molecule-plugins[vagrant]==25.8.12
+python-vagrant==1.0.0

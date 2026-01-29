@@ -1,0 +1,7 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: "Placeholder for tests"
+      debug:
+        msg: "Tests will be added later."
