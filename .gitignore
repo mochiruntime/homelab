@@ -50,3 +50,4 @@ roles/*/meta/.galaxy_info
 
 # Python
 .venv
+.pytest_cache/
