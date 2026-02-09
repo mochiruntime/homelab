@@ -42,6 +42,7 @@
     from_ip: "{{ item.source_ip | default('any') }}"
     to_ip: "{{ item.dest_ip | default('any') }}"
     interface: "{{ item.interface | default(omit) }}"
+    direction: "in"
   loop: "{{ ubuntu_hardening.firewall.ssh_access.rules }}"
   when: ubuntu_hardening.firewall.ssh_access.enabled
 

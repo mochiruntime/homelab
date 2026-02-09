@@ -17,7 +17,7 @@
   when: not ubuntu_hardening.network.ipv6.enabled
 
 - name: Disable IPv6
-  ansible.builtin.sysctl:
+  ansible.posix.sysctl:
     name: "{{ item }}"
     value: 1
     state: present
@@ -29,11 +29,11 @@
   when: not ubuntu_hardening.network.ipv6.enabled
 
 - name: Apply hardened sysctl parameters
-  ansible.builtin.sysctl:
+  ansible.posix.sysctl:
     name: "{{ item.name }}"
     value: "{{ item.value }}"
     state: present
-    reload: yes
-    sysctl_set: yes
+    reload: no
   loop: "{{ ubuntu_hardening.network.sysctl.params }}"
   when: ubuntu_hardening.network.sysctl.enabled
+  notify: reload sysctl

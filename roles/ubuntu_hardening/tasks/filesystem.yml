@@ -39,7 +39,7 @@
 - name: Disable core dumps for all users
   ansible.builtin.lineinfile:
     path: /etc/security/limits.conf
-    regexp: "^{{ item.domain }}\\s+{{ item.type }}\\s+core"
+    regexp: "^{{ item.domain | regex_escape }}\\s+{{ item.type | regex_escape }}\\s+core"
     line: "{{ item.domain }} {{ item.type }} core 0"
     insertbefore: "^# End of file"
   loop:
@@ -50,7 +50,7 @@
   when: ubuntu_hardening.filesystem.hardening.enabled
 
 - name: Disable core dumps via sysctl
-  ansible.builtin.sysctl:
+  ansible.posix.sysctl:
     name: fs.suid_dumpable
     value: 0
     state: present

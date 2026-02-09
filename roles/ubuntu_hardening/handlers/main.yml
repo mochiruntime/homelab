@@ -27,3 +27,6 @@
   ansible.builtin.service:
     name: systemd-journald
     state: restarted
+
+- name: reload sysctl
+  ansible.builtin.command: sysctl --system
