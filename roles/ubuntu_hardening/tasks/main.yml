@@ -1,0 +1,30 @@
+---
+# tasks file for roles/ubuntu_hardening
+
+- name: Combine defaults with user variables
+  ansible.builtin.set_fact:
+    ubuntu_hardening: "{{ ubuntu_hardening_defaults | combine(ubuntu_hardening | default({}), recursive=True) }}"
+
+- name: Include system hardening tasks
+  ansible.builtin.include_tasks: system.yml
+  tags: [system, hardening]
+
+- name: Include network hardening tasks
+  ansible.builtin.include_tasks: network.yml
+  tags: [network, hardening]
+
+- name: Include account hardening tasks
+  ansible.builtin.include_tasks: account.yml
+  tags: [account, hardening]
+
+- name: Include filesystem hardening tasks
+  ansible.builtin.include_tasks: filesystem.yml
+  tags: [filesystem, hardening]
+
+- name: Include SSH hardening tasks
+  ansible.builtin.include_tasks: ssh.yml
+  tags: [ssh, hardening]
+
+- name: Include firewall hardening tasks
+  ansible.builtin.include_tasks: firewall.yml
+  tags: [firewall, hardening]

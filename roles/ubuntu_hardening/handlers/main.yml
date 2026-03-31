@@ -1,0 +1,32 @@
+---
+# handlers file for roles/ubuntu_hardening
+
+- name: restart ssh
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+
+- name: restart fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+
+- name: restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+
+- name: update grub
+  ansible.builtin.command: update-grub
+
+- name: reload ufw
+  community.general.ufw:
+    state: reloaded
+
+- name: restart journald
+  ansible.builtin.service:
+    name: systemd-journald
+    state: restarted
+
+- name: reload sysctl
+  ansible.builtin.command: sysctl --system

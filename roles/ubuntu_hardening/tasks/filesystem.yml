@@ -1,0 +1,93 @@
+---
+- name: Harden /tmp
+  ansible.posix.mount:
+    path: /tmp
+    src: tmpfs
+    fstype: tmpfs
+    opts: defaults,nodev,nosuid,noexec
+    state: mounted
+  when:
+    - ubuntu_hardening.filesystem.hardening.enabled
+    - ubuntu_hardening.filesystem.hardening.tmpfs_tmp
+
+- name: Bind-mount /var/tmp to /tmp
+  ansible.posix.mount:
+    path: /var/tmp
+    src: /tmp
+    fstype: none
+    opts: bind
+    state: mounted
+  when:
+    - ubuntu_hardening.filesystem.hardening.enabled
+    - ubuntu_hardening.filesystem.hardening.tmpfs_tmp
+
+- name: Enforce sticky bit on world-writable directories
+  ansible.builtin.shell: |
+    find / -xdev -type d \( -perm -0002 -a ! -perm -1000 \) -exec chmod +t {} +
+  changed_when: false
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
+- name: Harden /dev/shm mount options
+  ansible.posix.mount:
+    path: /dev/shm
+    src: tmpfs
+    fstype: tmpfs
+    opts: "defaults,nodev,nosuid{{ ',noexec' if ubuntu_hardening.filesystem.hardening.shm_noexec else '' }}"
+    state: mounted
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
+- name: Disable core dumps for all users
+  ansible.builtin.lineinfile:
+    path: /etc/security/limits.conf
+    regexp: "^{{ item.domain | regex_escape }}\\s+{{ item.type | regex_escape }}\\s+core"
+    line: "{{ item.domain }} {{ item.type }} core 0"
+    insertbefore: "^# End of file"
+  loop:
+    - domain: "*"
+      type: hard
+    - domain: "*"
+      type: soft
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
+- name: Disable core dumps via sysctl
+  ansible.posix.sysctl:
+    name: fs.suid_dumpable
+    value: 0
+    state: present
+    reload: yes
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
+- name: Check if /var/log/syslog exists
+  ansible.builtin.stat:
+    path: /var/log/syslog
+  register: syslog_file
+  when: ubuntu_hardening.filesystem.hardening.enabled
+
+- name: Restrict access to /var/log/syslog
+  ansible.builtin.file:
+    path: /var/log/syslog
+    mode: "0640"
+    owner: syslog
+    group: adm
+  when:
+    - ubuntu_hardening.filesystem.hardening.enabled
+    - syslog_file.stat.exists
+
+- name: Enforce sensitive file permissions and ownership
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: root
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - path: /etc/passwd
+      mode: "0644"
+    - path: /etc/shadow
+      mode: "0640"
+      group: shadow
+    - path: /etc/group
+      mode: "0644"
+    - path: /etc/gshadow
+      mode: "0640"
+      group: shadow
+  when: ubuntu_hardening.filesystem.sensitive_files.enabled

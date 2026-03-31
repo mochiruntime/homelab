@@ -1,0 +1,127 @@
+---
+- name: Ensure the system is up to date
+  ansible.builtin.apt:
+    update_cache: yes
+    upgrade: "{{ ubuntu_hardening.system.upgrade_type | default('dist') }}"
+    cache_valid_time: 3600
+
+- name: Install security related packages
+  ansible.builtin.apt:
+    name:
+      - apparmor-profiles
+      - apparmor-utils
+      - audispd-plugins
+      - auditd
+      - fail2ban
+      - libpam-tmpdir
+      - ufw
+      - unattended-upgrades
+    state: present
+
+- name: Remove insecure or unnecessary packages
+  ansible.builtin.apt:
+    name: "{{ ubuntu_hardening.system.package_removal.packages }}"
+    state: absent
+    purge: yes
+  when: ubuntu_hardening.system.package_removal.enabled
+
+- name: Configure Unattended Upgrades
+  ansible.builtin.template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+  when: ubuntu_hardening.system.unattended_upgrades.enabled
+
+- name: Enable Unattended Upgrades
+  ansible.builtin.copy:
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+  when: ubuntu_hardening.system.unattended_upgrades.enabled
+
+- name: Ensure Auditd is running and enabled
+  ansible.builtin.service:
+    name: auditd
+    state: started
+    enabled: yes
+  when: ubuntu_hardening.system.auditd.enabled
+
+- name: Apply auditd rules
+  ansible.builtin.template:
+    src: audit.rules.j2
+    dest: /etc/audit/rules.d/hardening.rules
+    owner: root
+    group: root
+    mode: "0600"
+  notify: restart auditd
+  when:
+    - ubuntu_hardening.system.auditd.enabled
+    - ubuntu_hardening.system.auditd.apply_rules
+
+- name: Install AIDE
+  ansible.builtin.apt:
+    name: aide
+    state: present
+  when: ubuntu_hardening.system.aide.enabled
+
+- name: Initialize AIDE database
+  ansible.builtin.command: aideinit
+  async: 3600
+  poll: 0
+  when:
+    - ubuntu_hardening.system.aide.enabled
+    - ubuntu_hardening.system.aide.init
+  register: aide_init_result
+
+- name: Check AIDE initialization status
+  ansible.builtin.async_status:
+    jid: "{{ aide_init_result.ansible_job_id }}"
+  register: job_result
+  until: job_result.finished
+  retries: 60
+  delay: 60
+  when:
+    - ubuntu_hardening.system.aide.enabled
+    - ubuntu_hardening.system.aide.init
+
+- name: Enforce all AppArmor profiles
+  ansible.builtin.shell: aa-enforce /etc/apparmor.d/*
+  changed_when: false
+
+- name: Disable unused services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  loop:
+    - avahi-daemon
+    - cups
+    - rpcbind
+  ignore_errors: true # Some might not be installed
+
+- name: Enable persistent journald storage
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: "^#?Storage="
+    line: "Storage=persistent"
+  notify: restart journald
+
+- name: Rate-limit journald
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+  loop:
+    - key: RateLimitIntervalSec
+      value: 30s
+    - key: RateLimitBurst
+      value: 10000
+  notify: restart journald

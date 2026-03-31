@@ -1,0 +1,19 @@
+---
+- name: Homelab setup and update
+  hosts: all
+  become: yes
+  roles:
+    - ubuntu_hardening
+  vars:
+    ubuntu_hardening:
+      firewall:
+        enabled: true
+        ssh_access:
+          enabled: true
+          rules:
+            - source_ip: "{{ ansible_controller.ip }}"
+              dest_ip: "{{ network.private.ip }}"
+              interface: "{{ network.private.interface }}"
+      ssh:
+        allow_users:
+          - "{{ ansible_user }}"

@@ -1,0 +1,27 @@
+// Unattended-Upgrade::Origins-Pattern controls which packages are
+// upgraded.
+Unattended-Upgrade::Origins-Pattern {
+        // Codename based repositories:
+        "origin=Ubuntu,archive=${distro_codename}-security";
+};
+
+// Python regular expressions, matching packages to exclude from upgrading
+Unattended-Upgrade::Package-Blacklist {
+};
+
+// This option allows you to control if on a system that has a kernel 
+// auto-upgradable, but requires a reboot for it to take effect, 
+// a reboot will be performed automatically.
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "{{ ubuntu_hardening.system.unattended_upgrades.automatic_reboot_with_users | lower }}";
+
+// If this option is set to true, unattended-upgrades will take care of
+// the cleaning of the apt archive (clean out old .deb files).
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+
+{% if ubuntu_hardening.system.unattended_upgrades.mail != "" %}
+Unattended-Upgrade::Mail "{{ ubuntu_hardening.system.unattended_upgrades.mail }}";
+{% endif %}

@@ -1,0 +1,380 @@
+---
+argument_specs:
+  main:
+    short_description: "Hardening for Ubuntu 24.04 LTS"
+    description: "This role secures Ubuntu 24.04 servers by applying SSH, firewall, network, and system hardening measures."
+    author: github.com/mochiruntime
+    options:
+      ubuntu_hardening:
+        type: "dict"
+        description: "Core configuration object for the hardening role."
+        required: false
+        options:
+          ssh:
+            type: "dict"
+            description: "SSH hardening settings."
+            options:
+              enabled:
+                type: "bool"
+                default: true
+                description: "Whether to apply SSH hardening."
+              port:
+                type: "int"
+                default: 22
+                description: "The SSH port to listen on."
+              permit_root_login:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no", "prohibit-password"]
+                description: "Specifies whether root can log in using ssh."
+              password_authentication:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no"]
+                description: "Specifies whether password authentication is allowed."
+              allow_groups:
+                type: "list"
+                elements: "str"
+                default: []
+                description: "List of group names that are allowed to log in via SSH."
+              allow_users:
+                type: "list"
+                elements: "str"
+                default: []
+                description: "List of user names that are allowed to log in via SSH."
+              modern_algorithms:
+                type: "dict"
+                description: "Modern ciphers, MACs and Kex algorithms."
+                options:
+                  ciphers:
+                    type: "list"
+                    elements: "str"
+                    description: "List of secure ciphers to allow."
+                  macs:
+                    type: "list"
+                    elements: "str"
+                    description: "List of secure MAC algorithms to allow."
+                  kex:
+                    type: "list"
+                    elements: "str"
+                    description: "List of secure Key Exchange algorithms to allow."
+              authentication_methods:
+                type: "str"
+                default: "publickey"
+                description: "Specifies the authentication methods that must be successfully completed for a user to be granted access."
+              allow_tcp_forwarding:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no"]
+                description: "Specifies whether TCP forwarding is permitted."
+              permit_tunnel:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no", "point-to-point", "ethernet"]
+                description: "Specifies whether tun(4) device forwarding is allowed."
+              host_based_authentication:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no"]
+                description: "Specifies whether rhosts or /etc/hosts.equiv authentication is allowed."
+              gssapi_authentication:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no"]
+                description: "Specifies whether user authentication based on GSSAPI is allowed."
+              permit_user_environment:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no"]
+                description: "Specifies whether ~/.ssh/environment and Environment= options in ~/.ssh/authorized_keys are processed."
+              max_startups:
+                type: "str"
+                default: "10:30:60"
+                description: "Specifies the maximum number of concurrent unauthenticated connections to the SSH daemon."
+              ignore_rhosts:
+                type: "str"
+                default: "yes"
+                choices: ["yes", "no"]
+                description: "Specifies whether rhosts files should be ignored."
+              allow_agent_forwarding:
+                type: "str"
+                default: "no"
+                choices: ["yes", "no"]
+                description: "Specifies whether ssh-agent forwarding is permitted."
+          firewall:
+            type: "dict"
+            description: "UFW firewall settings."
+            options:
+              enabled:
+                type: "bool"
+                default: true
+                description: "Whether to enable UFW."
+              default_incoming_policy:
+                type: "str"
+                default: "deny"
+                choices: ["allow", "deny", "reject"]
+                description: "Default policy for incoming traffic."
+              allow_ports:
+                type: "list"
+                elements: "dict"
+                description: "List of ports to allow (e.g., {port: 22, proto: 'tcp'})."
+              ssh_access:
+                type: "dict"
+                description: "Restricted SSH access settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: false
+                    description: "Whether to enable restricted SSH access."
+                  rules:
+                    type: "list"
+                    elements: "dict"
+                    default: []
+                    description: "List of allowed combinations for SSH access."
+                    options:
+                      source_ip:
+                        type: "str"
+                        description: "Source IP or network (e.g., 192.168.1.0/24)."
+                      interface:
+                        type: "str"
+                        description: "Network interface (e.g., eth0)."
+                      dest_ip:
+                        type: "str"
+                        description: "Destination IP address."
+          system:
+            type: "dict"
+            description: "System-level hardening and package management."
+            options:
+              upgrade_type:
+                type: "str"
+                default: "dist"
+                choices: ["yes", "no", "dist", "full", "safe"]
+                description: "The type of upgrade to perform (apt module upgrade parameter)."
+              package_removal:
+                type: "dict"
+                description: "Insecure package removal settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to remove insecure packages."
+                  packages:
+                    type: "list"
+                    elements: "str"
+                    description: "List of packages to remove."
+              unattended_upgrades:
+                type: "dict"
+                description: "Unattended upgrades configuration."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to enable automatic security updates."
+                  mail:
+                    type: "str"
+                    default: ""
+                    description: "Email address to send update notifications to."
+                  remove_unused:
+                    type: "bool"
+                    default: true
+                    description: "Remove unused dependencies after updates."
+                  automatic_reboot_with_users:
+                    type: "bool"
+                    default: true
+                    description: "Whether to reboot even if users are logged in."
+              auditd:
+                type: "dict"
+                description: "Auditd service settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to enable and start auditd."
+                  apply_rules:
+                    type: "bool"
+                    default: true
+                    description: "Whether to apply baseline security audit rules."
+              aide:
+                type: "dict"
+                description: "AIDE (Advanced Intrusion Detection Environment) settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: false
+                  init:
+                    type: "bool"
+                    default: false
+                    description: "Whether to initialize the AIDE database (can take time)."
+          network:
+            type: "dict"
+            description: "Network hardening via sysctl."
+            options:
+              ipv6:
+                type: "dict"
+                description: "IPv6 configuration."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether IPv6 is enabled on the system."
+                  disable_at_boot:
+                    type: "bool"
+                    default: false
+                    description: "Whether to disable IPv6 at boot via GRUB."
+              sysctl:
+                type: "dict"
+                description: "Sysctl hardening settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to apply sysctl parameters."
+                  params:
+                    type: "list"
+                    elements: "dict"
+                    description: "List of sysctl parameters to apply."
+          filesystem:
+            type: "dict"
+            description: "Filesystem hardening settings."
+            options:
+              hardening:
+                type: "dict"
+                description: "General filesystem hardening settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to apply filesystem hardening (mount options, etc.)."
+                  shm_noexec:
+                    type: "bool"
+                    default: true
+                    description: "Whether to mount /dev/shm with noexec option."
+                  tmpfs_tmp:
+                    type: "bool"
+                    default: true
+                    description: "Whether to mount /tmp as tmpfs."
+              sensitive_files:
+                type: "dict"
+                description: "Sensitive system file permissions security."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to enforce owner and permissions on /etc/passwd, /etc/shadow, etc."
+          account:
+            type: "dict"
+            description: "User account security policies."
+            options:
+              password_aging:
+                type: "dict"
+                description: "Password aging policy settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: false
+                    description: "Whether to enforce password aging limits."
+                  max_days:
+                    type: "int"
+                    default: 90
+                    description: "Maximum number of days a password may be used."
+                  min_days:
+                    type: "int"
+                    default: 7
+                    description: "Minimum number of days between password changes."
+                  warn_age:
+                    type: "int"
+                    default: 7
+                    description: "Number of days warning given before a password expires."
+              root_check:
+                type: "dict"
+                description: "Root account health check settings."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to verify only root has UID 0."
+              sudo_password_required:
+                type: "dict"
+                description: "Sudoers security hardening."
+                options:
+                  enabled:
+                    type: "bool"
+                    default: true
+                    description: "Whether to ensure password is required for sudo by removing NOPASSWD."
+              pam:
+                type: "dict"
+                description: "PAM (Pluggable Authentication Modules) hardening settings."
+                options:
+                  pwquality:
+                    type: "dict"
+                    description: "Password quality and complexity settings."
+                    options:
+                      enabled:
+                        type: "bool"
+                        default: true
+                      minlen:
+                        type: "int"
+                        default: 14
+                        description: "Minimum password length."
+                      dcredit:
+                        type: "int"
+                        default: -1
+                        description: "Credit for digits."
+                      ucredit:
+                        type: "int"
+                        default: -1
+                        description: "Credit for uppercase characters."
+                      ocredit:
+                        type: "int"
+                        default: -1
+                        description: "Credit for other (special) characters."
+                      lcredit:
+                        type: "int"
+                        default: -1
+                        description: "Credit for lowercase characters."
+                      maxrepeat:
+                        type: "int"
+                        default: 3
+                        description: "Maximum number of repeated characters."
+                  faillock:
+                    type: "dict"
+                    description: "Account lockout settings (pam_faillock)."
+                    options:
+                      enabled:
+                        type: "bool"
+                        default: true
+                      deny:
+                        type: "int"
+                        default: 5
+                        description: "Number of failed attempts before lockout."
+                      unlock_time:
+                        type: "int"
+                        default: 900
+                        description: "Lockout duration in seconds."
+                      exempt_users:
+                        type: "list"
+                        elements: "str"
+                        default: []
+                        description: "List of users exempt from account lockout (e.g., automation users)."
+                  password_history:
+                    type: "dict"
+                    description: "Password history settings."
+                    options:
+                      enabled:
+                        type: "bool"
+                        default: true
+                      remember:
+                        type: "int"
+                        default: 5
+                        description: "Number of previous passwords to remember."
+                  restrict_su:
+                    type: "dict"
+                    description: "Settings for restricting su access."
+                    options:
+                      enabled:
+                        type: "bool"
+                        default: true
+                      group:
+                        type: "str"
+                        default: "sudo"
+                        description: "Group allowed to use su."

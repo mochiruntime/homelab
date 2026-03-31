@@ -1,0 +1,39 @@
+---
+- name: Disable IPv6 via GRUB
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX="(.*)"'
+    line: 'GRUB_CMDLINE_LINUX="\1 ipv6.disable=1"'
+    backrefs: yes
+  notify: update grub
+  when: ubuntu_hardening.network.ipv6.disable_at_boot
+
+- name: Disable IPv6 in UFW
+  ansible.builtin.lineinfile:
+    path: /etc/default/ufw
+    regexp: "^IPV6="
+    line: "IPV6=no"
+  notify: reload ufw
+  when: not ubuntu_hardening.network.ipv6.enabled
+
+- name: Disable IPv6
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: 1
+    state: present
+    reload: yes
+  loop:
+    - net.ipv6.conf.all.disable_ipv6
+    - net.ipv6.conf.default.disable_ipv6
+    - net.ipv6.conf.lo.disable_ipv6
+  when: not ubuntu_hardening.network.ipv6.enabled
+
+- name: Apply hardened sysctl parameters
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: no
+  loop: "{{ ubuntu_hardening.network.sysctl.params }}"
+  when: ubuntu_hardening.network.sysctl.enabled
+  notify: reload sysctl

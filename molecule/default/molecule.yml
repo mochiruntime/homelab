@@ -1,0 +1,46 @@
+---
+dependency:
+  name: galaxy
+  options:
+    # Install both roles and collections defined in requirements.yml
+    role-file: ${MOLECULE_PROJECT_DIRECTORY}/requirements.yml
+    requirements-file: ${MOLECULE_PROJECT_DIRECTORY}/requirements.yml
+driver:
+  name: vagrant
+platforms:
+  - name: homelab-vm
+    box: bento/ubuntu-24.04
+    provider: virtualbox
+    memory: 4096
+    cpus: 4
+    config_options:
+      vm.boot_timeout: 600
+    provider_options:
+      gui: false
+      check_guest_additions: false
+    interfaces:
+      - network_name: private_network
+        ip: 192.168.56.10
+        auto_config: true
+provisioner:
+  env:
+    VAGRANT_WSL_ENABLE_WINDOWS_ACCESS: "1"
+    # Ensure Windows paths are available for Vagrant/VirtualBox in WSL
+    PATH: "${PATH}:/mnt/c/Windows/System32:/mnt/c/Windows/System32/WindowsPowerShell/v1.0:/mnt/c/Program Files/Oracle/VirtualBox"
+  config_options:
+    defaults:
+      roles_path: ${MOLECULE_PROJECT_DIRECTORY}/roles
+      library: ${MOLECULE_PROJECT_DIRECTORY}/.venv/lib/python3.13/site-packages/molecule_plugins/vagrant/modules
+  inventory:
+    group_vars:
+      all:
+        ansible_user: "vagrant"
+        # Mocking variables used in playbooks/homelab/homelab.yml
+        ansible_controller:
+          ip: "192.168.56.1"
+        network:
+          private:
+            ip: "192.168.56.10"
+            interface: "eth1"
+verifier:
+  name: ansible

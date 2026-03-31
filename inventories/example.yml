@@ -1,0 +1,6 @@
+all:
+  hosts:
+    homelab:
+      ssh:
+        # this requires adapting the tests to switch to the new port after hardening
+        port: 2222
