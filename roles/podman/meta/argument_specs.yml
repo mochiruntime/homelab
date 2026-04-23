@@ -1,0 +1,15 @@
+---
+argument_specs:
+  main:
+    short_description: The main entry point for the podman role.
+    description: This role installs Podman and related utilities on Ubuntu systems.
+    options:
+      podman_state:
+        type: "str"
+        default: "present"
+        choices: ["present", "latest", "absent"]
+        description: Whether Podman should be present, latest, or absent.
+      podman_user:
+        type: "str"
+        description: The user for whom lingering and the podman socket will be enabled.
+        default: "{{ ansible_user }}"

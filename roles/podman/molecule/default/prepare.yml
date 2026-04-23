@@ -1,0 +1,10 @@
+---
+- name: Prepare
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Create test user
+      ansible.builtin.user:
+        name: testuser
+        shell: /bin/bash
+      become: true

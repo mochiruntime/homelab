@@ -1,0 +1,64 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  vars:
+    podman_user: testuser
+  tasks:
+    - name: Check if Podman is installed
+      ansible.builtin.command: podman --version
+      changed_when: false
+      register: podman_version
+
+    - name: Assert Podman is installed
+      ansible.builtin.assert:
+        that:
+          - podman_version.rc == 0
+        fail_msg: "Podman is not installed"
+
+    - name: Check if lingering is enabled for testuser
+      ansible.builtin.stat:
+        path: "/var/lib/systemd/linger/{{ podman_user }}"
+      register: linger_file
+      become: true
+
+    - name: Assert lingering is enabled
+      ansible.builtin.assert:
+        that:
+          - linger_file.stat.exists
+        fail_msg: "Lingering is not enabled for {{ podman_user }}"
+
+    - name: Get UID of the testuser
+      ansible.builtin.command: "id -u {{ podman_user }}"
+      changed_when: false
+      register: user_id
+
+    - name: Check if podman socket is available
+      ansible.builtin.stat:
+        path: "/run/user/{{ user_id.stdout }}/podman/podman.sock"
+      register: socket_file
+      become: true
+
+    - name: Assert podman socket is available
+      ansible.builtin.assert:
+        that:
+          - socket_file.stat.exists
+          - socket_file.stat.issock
+        fail_msg: "Podman socket is not available at /run/user/{{ user_id.stdout }}/podman/podman.sock"
+
+    - name: Reboot the machine
+      ansible.builtin.reboot:
+      become: true
+
+    - name: Check if podman socket is still available after reboot
+      ansible.builtin.stat:
+        path: "/run/user/{{ user_id.stdout }}/podman/podman.sock"
+      register: socket_file_after_reboot
+      become: true
+
+    - name: Assert podman socket is available after reboot
+      ansible.builtin.assert:
+        that:
+          - socket_file_after_reboot.stat.exists
+          - socket_file_after_reboot.stat.issock
+        fail_msg: "Podman socket is not available after reboot"

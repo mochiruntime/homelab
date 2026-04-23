@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    podman_user: testuser
+  tasks:
+    - name: "Include podman role"
+      ansible.builtin.include_role:
+        name: "podman"
