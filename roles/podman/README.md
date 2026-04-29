@@ -24,18 +24,28 @@ None.
 This role uses Molecule and Vagrant for testing.
 
 ### Setup
+
+Create a Python virtual environment:
+
 ```bash
 python3 -m venv .venv
 
 source .venv/bin/activate
 # or for fish
 source .venv/bin/activate.fish
+```
 
+Install dependencies in the virtual environment:
+
+```bash
+# From the repository root
 pip install -r requirements.txt
 ```
 
 ### Run Tests
+
 ```bash
+# From the repository root
 cd roles/podman
 molecule test
 ```
@@ -49,7 +59,3 @@ molecule test
       vars:
         podman_user: myuser
 ```
-
-## License
-
-MIT

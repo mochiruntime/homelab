@@ -1,0 +1,16 @@
+---
+- name: Converge
+  hosts: all
+  vars:
+    podman_user: vagrant
+    podman_network_list:
+      - name: test_network
+        user: vagrant
+  tasks:
+    - name: Include podman role
+      ansible.builtin.include_role:
+        name: podman
+
+    - name: Include podman_network role
+      ansible.builtin.include_role:
+        name: podman_network

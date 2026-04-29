@@ -1,11 +1,14 @@
 # Ansible
 *.retry
-
-# Ansible Vault
 .vault_password
-
-# Ansible collection/role cache
 .ansible/
+.cache/
+
+# Molecule
+.molecule/
+
+# Vagrant
+.vagrant.d
 
 # Python
 __pycache__/
@@ -18,15 +21,13 @@ build/
 dist/
 *.egg-info/
 
-# Molecule
-.molecule/
-
 # IDEs and Tools
 .vscode/
 .idea/
 .project
 .pydevproject
 .settings/
+.codex
 
 # Logs
 *.log

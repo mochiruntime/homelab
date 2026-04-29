@@ -1,0 +1,46 @@
+---
+- name: Verify
+  hosts: all
+  vars:
+    podman_user: vagrant
+    network_name: test_network
+  tasks:
+    - name: Get UID of the podman user
+      ansible.builtin.command: "id -u {{ podman_user }}"
+      changed_when: false
+      register: user_id_result
+
+    - name: Verify podman network exists
+      ansible.builtin.command: podman network inspect {{ network_name }}
+      become: true
+      become_user: "{{ podman_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ user_id_result.stdout }}"
+      register: network_inspect
+      changed_when: false
+
+    - name: Assert network exists
+      ansible.builtin.assert:
+        that: network_inspect.rc == 0
+        fail_msg: "Podman network {{ network_name }} does not exist"
+
+    - name: Reboot the machine
+      ansible.builtin.reboot:
+      become: true
+
+    - name: Verify podman network exists after reboot
+      ansible.builtin.command: podman network inspect {{ network_name }}
+      become: true
+      become_user: "{{ podman_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ user_id_result.stdout }}"
+      register: network_inspect_after
+      changed_when: false
+      retries: 5
+      delay: 5
+      until: network_inspect_after.rc == 0
+
+    - name: Assert network exists after reboot
+      ansible.builtin.assert:
+        that: network_inspect_after.rc == 0
+        fail_msg: "Podman network {{ network_name }} does not exist after reboot"

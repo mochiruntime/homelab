@@ -1,0 +1,10 @@
+---
+- name: Reload user systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  loop: "{{ podman_network_user_uid.results }}"
+  become: true
+  become_user: "{{ item.item.user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ item.stdout }}"

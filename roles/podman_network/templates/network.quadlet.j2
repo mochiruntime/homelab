@@ -1,0 +1,22 @@
+[Unit]
+Description=Podman Network {{ item.name }}
+
+[Network]
+NetworkName={{ item.name }}
+{% if item.internal | default(false) %}
+Internal=true
+{% endif %}
+{% if item.subnet is defined %}
+Subnet={{ item.subnet }}
+{% endif %}
+{% if item.gateway is defined %}
+Gateway={{ item.gateway }}
+{% endif %}
+{% if item.labels is defined %}
+{% for label in item.labels %}
+Label={{ label }}
+{% endfor %}
+{% endif %}
+
+[Install]
+WantedBy=default.target
