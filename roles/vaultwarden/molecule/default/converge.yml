@@ -1,0 +1,15 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  tasks:
+    - name: Include vaultwarden
+      ansible.builtin.include_role:
+        name: vaultwarden
+      vars:
+        vaultwarden_bind_ip: 127.0.0.1
+        vaultwarden_bind_port: 8080
+        vaultwarden_domain: http://{{ vaultwarden_bind_ip }}:{{ vaultwarden_bind_port }}/
+        vaultwarden_user: vaultwarden
+        # Dummy Argon2id hash for "testsecret"
+        vaultwarden_admin_token_hash: "$argon2id$v=19$m=65540,t=3,p=4$ZWQ4Z3REWmNJSWp0VTNaT0d0N2tObXhIUGlkWUdKMUZVdEp2REZ3U1luND0$wnAKrANyvhNwEX3TUEzslNjMfAic1vEOB0xb1DWqqgg"

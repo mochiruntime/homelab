@@ -1,0 +1,38 @@
+---
+argument_specs:
+  main:
+    short_description: "The main entry point for the vaultwarden role."
+    options:
+      vaultwarden_user:
+        type: "str"
+        default: "vaultwarden"
+        description: "The system user that will run the rootless container."
+      vaultwarden_bind_ip:
+        type: "str"
+        required: false
+        description: "Optional, the host IP to bind the port to."
+      vaultwarden_bind_port:
+        type: "int"
+        default: 8080
+        required: false
+        description: "Optional, the host port to map to the vaultwarden container if vaultwarden_bind_ip is set"
+      vaultwarden_network:
+        type: "str"
+        required: false
+        description: "Optional, the Podman network the container should join."
+      vaultwarden_data_dir:
+        type: "path"
+        default: "/home/{{ vaultwarden_user }}/vaultwarden/data"
+        description: "The host directory to store vaultwarden data."
+      vaultwarden_domain:
+        type: "str"
+        required: true
+        description: "The full domain name for vaultwarden (e.g., https://vault.example.com)."
+      vaultwarden_signups_allowed:
+        type: "bool"
+        default: false
+        description: "Whether to allow new user signups."
+      vaultwarden_admin_token_hash:
+        type: "str"
+        required: true
+        description: "The PHC Argon2id hash of the admin token used to access the /admin interface."
