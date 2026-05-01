@@ -3,6 +3,13 @@
   hosts: all
   become: true
   tasks:
+    - name: Ensure podman users exist
+      ansible.builtin.include_role:
+        name: podman_user
+      vars:
+        podman_user_list:
+          - vaultwarden
+
     - name: Include vaultwarden
       ansible.builtin.include_role:
         name: vaultwarden

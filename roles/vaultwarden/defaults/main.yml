@@ -1,6 +1,5 @@
 ---
 # defaults file for vaultwarden
-vaultwarden_user: vaultwarden
 vaultwarden_bind_port: 8080
 vaultwarden_data_dir: "/home/{{ vaultwarden_user }}/vaultwarden/data"
 vaultwarden_signups_allowed: false

@@ -1,0 +1,11 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  vars:
+    podman_user_list:
+      - testuser
+  tasks:
+    - name: "Include podman_user"
+      ansible.builtin.include_role:
+        name: "podman_user"

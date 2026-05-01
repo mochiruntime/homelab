@@ -1,6 +1,5 @@
 ---
 # defaults file for caddy
-caddy_user: caddy
 caddy_image: docker.io/library/caddy:latest
 
 caddy_data_dir: "/home/{{ caddy_user }}/data"

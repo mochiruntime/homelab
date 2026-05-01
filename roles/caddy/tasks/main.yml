@@ -20,12 +20,6 @@
           Please use higher ports or configure the host to allow binding to privileged ports.
       when: caddy_sysctl_port_start.rc == 0
 
-- name: Ensure caddy user exists
-  ansible.builtin.user:
-    name: "{{ caddy_user }}"
-    shell: /bin/bash
-    state: present
-
 - name: Get caddy user UID
   ansible.builtin.getent:
     database: passwd
@@ -34,11 +28,6 @@
 - name: Set caddy UID fact
   ansible.builtin.set_fact:
     caddy_uid: "{{ getent_passwd[caddy_user][1] }}"
-
-- name: Enable lingering for caddy user
-  ansible.builtin.command: "loginctl enable-linger {{ caddy_user }}"
-  args:
-    creates: "/var/lib/systemd/linger/{{ caddy_user }}"
 
 - name: Ensure directories exist
   ansible.builtin.file:
@@ -50,7 +39,6 @@
   loop:
     - "{{ caddy_data_dir }}"
     - "{{ caddy_config_dir }}"
-    - "/home/{{ caddy_user }}/.config/containers/systemd"
 
 - name: Deploy Caddyfile
   ansible.builtin.template:

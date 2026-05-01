@@ -1,22 +1,25 @@
 ---
 - name: Verify
   hosts: all
+  become: true
+  vars:
+    caddy_user: services_user
   tasks:
     - name: Get caddy user UID
       ansible.builtin.getent:
         database: passwd
-        key: caddy
+        key: "{{ caddy_user }}"
 
     - name: Set caddy UID fact
       ansible.builtin.set_fact:
-        caddy_uid: "{{ getent_passwd['caddy'][1] }}"
+        caddy_uid: "{{ getent_passwd[caddy_user][1] }}"
 
     - name: Check if caddy service is running
       ansible.builtin.systemd:
         name: caddy.service
         scope: user
       become: true
-      become_user: caddy
+      become_user: "{{ caddy_user }}"
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ caddy_uid }}"
       register: caddy_service_status
@@ -39,3 +42,43 @@
       ansible.builtin.assert:
         that:
           - "'hello from http-echo' in caddy_response.content"
+
+    - name: Reboot the instance to test persistence
+      ansible.builtin.reboot:
+      become: true
+
+    - name: Get caddy user UID after reboot
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ caddy_user }}"
+
+    - name: Set caddy UID fact after reboot
+      ansible.builtin.set_fact:
+        caddy_uid: "{{ getent_passwd[caddy_user][1] }}"
+
+    - name: Check if caddy service is running after reboot
+      ansible.builtin.systemd:
+        name: caddy.service
+        scope: user
+      become: true
+      become_user: "{{ caddy_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ caddy_uid }}"
+      register: caddy_service_status_post
+      retries: 10
+      delay: 5
+      until: caddy_service_status_post.status.ActiveState == 'active'
+
+    - name: Check Caddy reachability after reboot
+      ansible.builtin.uri:
+        url: "http://localhost:80"
+        return_content: true
+      register: caddy_response_post
+      retries: 10
+      delay: 5
+      until: caddy_response_post.status == 200
+
+    - name: Assert forwarding to http-echo after reboot
+      ansible.builtin.assert:
+        that:
+          - "'hello from http-echo' in caddy_response_post.content"

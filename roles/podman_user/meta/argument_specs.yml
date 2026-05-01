@@ -1,0 +1,11 @@
+---
+argument_specs:
+  main:
+    short_description: "Manage podman users"
+    description: "This role ensures that specified users exist, have lingering enabled, and have the necessary Quadlet directories created for rootless Podman."
+    options:
+      podman_user_list:
+        type: "list"
+        elements: "str"
+        default: []
+        description: "A list of usernames to configure for rootless Podman usage."

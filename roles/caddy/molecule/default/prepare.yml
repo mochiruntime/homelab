@@ -14,43 +14,33 @@
       ansible.builtin.include_role:
         name: podman
 
+    - name: Ensure podman users exist
+      ansible.builtin.include_role:
+        name: podman_user
+      vars:
+        podman_user_list:
+          - services_user
+
     - name: Create caddy_network
       ansible.builtin.include_role:
         name: podman_network
       vars:
-        podman_network_name: caddy_network
+        podman_network_list:
+          - name: caddy_network
+            user: services_user
 
-    - name: Create test user for http-echo
-      ansible.builtin.user:
-        name: echo-user
-        shell: /bin/bash
-        state: present
-
-    - name: Enable lingering for echo-user
-      ansible.builtin.command: "loginctl enable-linger echo-user"
-      args:
-        creates: "/var/lib/systemd/linger/echo-user"
-
-    - name: Get echo-user UID
+    - name: Get services_user UID
       ansible.builtin.getent:
         database: passwd
-        key: echo-user
+        key: services_user
 
-    - name: Set echo-user UID fact
+    - name: Set services_user UID fact
       ansible.builtin.set_fact:
-        echo_user_uid: "{{ getent_passwd['echo-user'][1] }}"
-
-    - name: Ensure systemd directory exists for echo-user
-      ansible.builtin.file:
-        path: "/home/echo-user/.config/containers/systemd"
-        state: directory
-        owner: echo-user
-        group: echo-user
-        mode: '0700'
+        echo_user_uid: "{{ getent_passwd['services_user'][1] }}"
 
     - name: Deploy http-echo quadlet
       ansible.builtin.copy:
-        dest: "/home/echo-user/.config/containers/systemd/http-echo.container"
+        dest: "/home/services_user/.config/containers/systemd/http-echo.container"
         content: |
           [Container]
           ContainerName=http-echo
@@ -63,8 +53,8 @@
           
           [Install]
           WantedBy=default.target
-        owner: echo-user
-        group: echo-user
+        owner: services_user
+        group: services_user
         mode: '0644'
 
     - name: Start http-echo service
@@ -75,6 +65,6 @@
         scope: user
         daemon_reload: true
       become: true
-      become_user: echo-user
+      become_user: services_user
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ echo_user_uid }}"

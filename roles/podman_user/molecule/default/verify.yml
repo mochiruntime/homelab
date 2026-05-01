@@ -1,0 +1,35 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Get user info
+      ansible.builtin.getent:
+        database: passwd
+        key: testuser
+
+    - name: Check if lingering is enabled
+      ansible.builtin.stat:
+        path: /var/lib/systemd/linger/testuser
+      register: linger_stat
+
+    - name: Assert lingering is enabled
+      ansible.builtin.assert:
+        that:
+          - linger_stat.stat.exists
+        fail_msg: "Lingering is not enabled for testuser"
+
+    - name: Check Quadlet directory
+      ansible.builtin.stat:
+        path: /home/testuser/.config/containers/systemd
+      register: quadlet_stat
+
+    - name: Assert Quadlet directory exists and has correct permissions
+      ansible.builtin.assert:
+        that:
+          - quadlet_stat.stat.exists
+          - quadlet_stat.stat.isdir
+          - quadlet_stat.stat.mode == '0700'
+          - quadlet_stat.stat.pw_name == 'testuser'
+        fail_msg: "Quadlet directory check failed"
