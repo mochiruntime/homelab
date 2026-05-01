@@ -1,5 +1,22 @@
 ---
 # tasks file for vaultwarden
+- name: Assert port binding permissions
+  block:
+    - name: Get unprivileged_port_start sysctl
+      ansible.builtin.command: cat /proc/sys/net/ipv4/ip_unprivileged_port_start
+      register: vaultwarden_sysctl_port_start
+      changed_when: false
+      failed_when: false
+
+    - name: Verify privileged port binding
+      ansible.builtin.assert:
+        that:
+          - (vaultwarden_bind_port | int) >= (vaultwarden_sysctl_port_start.stdout | default(1024) | int)
+        fail_msg: >
+          Binding to port {{ vaultwarden_bind_port }} is not allowed in rootless mode.
+          The host's net.ipv4.ip_unprivileged_port_start is set to {{ vaultwarden_sysctl_port_start.stdout | default(1024) }}.
+          Please use a higher port or configure the host to allow binding to privileged ports.
+      when: vaultwarden_sysctl_port_start.rc == 0
 - name: Get vaultwarden user UID
   ansible.builtin.getent:
     database: passwd

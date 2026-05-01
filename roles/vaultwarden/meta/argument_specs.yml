@@ -1,38 +1,42 @@
 ---
 argument_specs:
   main:
-    short_description: "The main entry point for the vaultwarden role."
+    short_description: The main entry point for the vaultwarden role.
     options:
       vaultwarden_user:
-        type: "str"
+        type: str
         required: true
-        description: "The system user that will run the rootless container."
+        description: The system user that will run the rootless container.
+      vaultwarden_image:
+        type: str
+        default: docker.io/vaultwarden/server:latest
+        description: The vaultwarden image to use.
       vaultwarden_bind_ip:
-        type: "str"
+        type: str
         required: false
-        description: "Optional, the host IP to bind the port to."
+        description: Optional, the host IP to bind the port to.
       vaultwarden_bind_port:
-        type: "int"
+        type: int
         default: 8080
         required: false
-        description: "Optional, the host port to map to the vaultwarden container if vaultwarden_bind_ip is set"
+        description: Optional, the host port to map to the vaultwarden container.
       vaultwarden_network:
-        type: "str"
+        type: str
         required: false
-        description: "Optional, the Podman network the container should join."
+        description: Optional, the Podman network the container should join.
       vaultwarden_data_dir:
-        type: "path"
+        type: path
         default: "/home/{{ vaultwarden_user }}/vaultwarden/data"
-        description: "The host directory to store vaultwarden data."
+        description: The host directory to store vaultwarden data.
       vaultwarden_domain:
-        type: "str"
+        type: str
         required: true
-        description: "The full domain name for vaultwarden (e.g., https://vault.example.com)."
+        description: The full domain name for vaultwarden (e.g., https://vault.example.com).
       vaultwarden_signups_allowed:
-        type: "bool"
+        type: bool
         default: false
-        description: "Whether to allow new user signups."
+        description: Whether to allow new user signups.
       vaultwarden_admin_token_hash:
-        type: "str"
+        type: str
         required: true
-        description: "The PHC Argon2id hash of the admin token used to access the /admin interface."
+        description: The PHC Argon2id hash of the admin token used to access the /admin interface.

@@ -2,8 +2,8 @@
 # defaults file for caddy
 caddy_image: docker.io/library/caddy:latest
 
-caddy_data_dir: "/home/{{ caddy_user }}/data"
-caddy_config_dir: "/home/{{ caddy_user }}/config"
+caddy_data_dir: "/home/{{ caddy_user }}/caddy/data"
+caddy_config_dir: "/home/{{ caddy_user }}/caddy/config"
 
 caddy_http_port: 80
 caddy_https_port: 443

@@ -10,7 +10,7 @@ PublishPort={{ caddy_https_port }}:443
 Network={{ caddy_network }}
 {% endif %}
 
-Volume={{ caddy_config_dir }}/Caddyfile:/etc/caddy/Caddyfile:Z,U
+Volume={{ caddy_config_dir }}/Caddyfile:/etc/caddy/Caddyfile:Z,U,ro
 Volume={{ caddy_data_dir }}:/data:Z,U
 Volume={{ caddy_config_dir }}:/config:Z,U
 

@@ -1,5 +1,6 @@
 ---
 # defaults file for vaultwarden
+vaultwarden_image: docker.io/vaultwarden/server:latest
 vaultwarden_bind_port: 8080
 vaultwarden_data_dir: "/home/{{ vaultwarden_user }}/vaultwarden/data"
 vaultwarden_signups_allowed: false

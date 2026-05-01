@@ -4,7 +4,7 @@ ContainerName=vaultwarden
 Environment=DOMAIN={{ vaultwarden_domain }}
 Environment=SIGNUPS_ALLOWED={{ vaultwarden_signups_allowed | lower }}
 Environment=ADMIN_TOKEN={{ vaultwarden_admin_token_hash }}
-Image=docker.io/vaultwarden/server:latest
+Image={{ vaultwarden_image }}
 
 {% if vaultwarden_bind_ip | default(false) %}
 PublishPort={{ vaultwarden_bind_ip }}:{{ vaultwarden_bind_port }}:80

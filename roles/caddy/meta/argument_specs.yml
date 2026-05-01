@@ -29,10 +29,10 @@ argument_specs:
         type: str
         description: The Podman network to join. Must be created externally.
       caddy_data_dir:
-        type: str
+        type: path
         description: Path to the persistent data directory for Caddy (certificates, etc.).
       caddy_config_dir:
-        type: str
+        type: path
         description: Path to the persistent configuration directory for Caddy.
       caddy_image:
         type: str
