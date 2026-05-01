@@ -5,7 +5,7 @@ argument_specs:
     options:
       vaultwarden_user:
         type: "str"
-        default: "vaultwarden"
+        required: true
         description: "The system user that will run the rootless container."
       vaultwarden_bind_ip:
         type: "str"

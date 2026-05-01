@@ -5,7 +5,7 @@ argument_specs:
     options:
       caddy_user:
         type: str
-        default: caddy
+        required: true
         description: The system user that will run the rootless Podman container.
       caddy_sites:
         type: list

@@ -1,11 +1,5 @@
 ---
 # tasks file for vaultwarden
-- name: Ensure vaultwarden user exists
-  ansible.builtin.user:
-    name: "{{ vaultwarden_user }}"
-    shell: /bin/bash
-    state: present
-
 - name: Get vaultwarden user UID
   ansible.builtin.getent:
     database: passwd
@@ -14,11 +8,6 @@
 - name: Set vaultwarden UID fact
   ansible.builtin.set_fact:
     vaultwarden_uid: "{{ getent_passwd[vaultwarden_user][1] }}"
-
-- name: Enable lingering for vaultwarden user
-  ansible.builtin.command: "loginctl enable-linger {{ vaultwarden_user }}"
-  args:
-    creates: "/var/lib/systemd/linger/{{ vaultwarden_user }}"
 
 - name: Ensure directories exist
   ansible.builtin.file:
@@ -29,7 +18,6 @@
     mode: '0700'
   loop:
     - "{{ vaultwarden_data_dir }}"
-    - "/home/{{ vaultwarden_user }}/.config/containers/systemd"
 
 - name: Deploy vaultwarden quadlet
   ansible.builtin.template:

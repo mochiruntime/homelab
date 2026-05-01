@@ -12,7 +12,7 @@ Available variables are listed below, along with default values (see `defaults/m
 
 | Variable | Default Value | Description |
 | --- | --- | --- |
-| `vaultwarden_user` | `vaultwarden` | The system user that will run the rootless container. |
+| `vaultwarden_user` | **Required** | The system user that will run the rootless container. |
 | `vaultwarden_bind_ip` | undefined | Optional, the host IP address to bind the Vaultwarden port to (don't set if you use a reverse proxy with `vaultwarden_network`). |
 | `vaultwarden_bind_port` | `8080` | Optional, the host port to map to Vaultwarden's port 80 if `vaultwarden_bind_ip` is set |
 | `vaultwarden_network` | undefined | Optional Podman network name for the container to join. |

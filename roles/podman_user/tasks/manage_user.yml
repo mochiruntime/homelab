@@ -1,0 +1,32 @@
+---
+- name: Ensure user exists
+  ansible.builtin.user:
+    name: "{{ podman_user }}"
+    shell: /bin/bash
+    state: present
+
+- name: Get user UID
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ podman_user }}"
+
+- name: Set user UID fact
+  ansible.builtin.set_fact:
+    user_uid: "{{ getent_passwd[podman_user][1] }}"
+
+- name: Enable lingering for user
+  ansible.builtin.command: "loginctl enable-linger {{ podman_user }}"
+  args:
+    creates: "/var/lib/systemd/linger/{{ podman_user }}"
+
+- name: Ensure user directories exist
+  ansible.builtin.file:
+    path: "{{ folder }}"
+    state: directory
+    owner: "{{ podman_user }}"
+    group: "{{ podman_user }}"
+    mode: '0700'
+  loop:
+    - "/home/{{ podman_user }}/.config/containers/systemd"
+  loop_control:
+    loop_var: folder

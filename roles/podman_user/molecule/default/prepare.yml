@@ -1,0 +1,10 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Install Podman and base dependencies
+      ansible.builtin.include_role:
+        name: podman
+      vars:
+        podman_user: "vagrant"

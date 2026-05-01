@@ -1,0 +1,9 @@
+---
+- name: Manage podman users
+  ansible.builtin.include_tasks:
+    file: manage_user.yml
+    apply:
+      become: true
+  loop: "{{ podman_user_list }}"
+  loop_control:
+    loop_var: podman_user
