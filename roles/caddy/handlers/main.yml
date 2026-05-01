@@ -1,0 +1,21 @@
+---
+# handlers file for caddy
+
+- name: Reload user systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  become: true
+  become_user: "{{ caddy_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ caddy_uid }}"
+
+- name: Restart caddy
+  ansible.builtin.systemd:
+    name: caddy.service
+    state: restarted
+    scope: user
+  become: true
+  become_user: "{{ caddy_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ caddy_uid }}"

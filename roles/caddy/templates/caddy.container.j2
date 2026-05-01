@@ -1,0 +1,26 @@
+# caddy.container
+[Container]
+ContainerName=caddy
+Image={{ caddy_image }}
+
+PublishPort={{ caddy_http_port }}:80
+PublishPort={{ caddy_https_port }}:443
+
+{% if caddy_network | default(false) %}
+Network={{ caddy_network }}
+{% endif %}
+
+Volume={{ caddy_config_dir }}/Caddyfile:/etc/caddy/Caddyfile:Z,U
+Volume={{ caddy_data_dir }}:/data:Z,U
+Volume={{ caddy_config_dir }}:/config:Z,U
+
+{% for vol in caddy_extra_volumes %}
+Volume={{ vol }}
+{% endfor %}
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

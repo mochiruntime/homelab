@@ -1,0 +1,41 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Get caddy user UID
+      ansible.builtin.getent:
+        database: passwd
+        key: caddy
+
+    - name: Set caddy UID fact
+      ansible.builtin.set_fact:
+        caddy_uid: "{{ getent_passwd['caddy'][1] }}"
+
+    - name: Check if caddy service is running
+      ansible.builtin.systemd:
+        name: caddy.service
+        scope: user
+      become: true
+      become_user: caddy
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ caddy_uid }}"
+      register: caddy_service_status
+
+    - name: Assert caddy service is active
+      ansible.builtin.assert:
+        that:
+          - caddy_service_status.status.ActiveState == 'active'
+
+    - name: Check Caddy reachability
+      ansible.builtin.uri:
+        url: "http://localhost:80"
+        return_content: true
+      register: caddy_response
+      retries: 5
+      delay: 5
+      until: caddy_response.status == 200
+
+    - name: Assert forwarding to http-echo
+      ansible.builtin.assert:
+        that:
+          - "'hello from http-echo' in caddy_response.content"

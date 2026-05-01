@@ -1,0 +1,53 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy Caddy as a rootless Podman container using Quadlets.
+    options:
+      caddy_user:
+        type: str
+        default: caddy
+        description: The system user that will run the rootless Podman container.
+      caddy_sites:
+        type: list
+        elements: dict
+        description: List of site configurations for the Caddyfile.
+        options:
+          domain:
+            type: str
+            required: true
+            description: The domain name for the site.
+          proxy:
+            type: str
+            description: The backend address to proxy requests to (e.g., localhost:8080).
+          raw:
+            type: str
+            description: Raw Caddyfile directives for this site block.
+      caddy_raw_config:
+        type: str
+        description: Full Caddyfile content. If provided, caddy_sites is ignored.
+      caddy_network:
+        type: str
+        description: The Podman network to join. Must be created externally.
+      caddy_data_dir:
+        type: str
+        description: Path to the persistent data directory for Caddy (certificates, etc.).
+      caddy_config_dir:
+        type: str
+        description: Path to the persistent configuration directory for Caddy.
+      caddy_image:
+        type: str
+        default: docker.io/library/caddy:latest
+        description: The Caddy image to use.
+      caddy_http_port:
+        type: int
+        default: 80
+        description: Host port to map to container port 80.
+      caddy_https_port:
+        type: int
+        default: 443
+        description: Host port to map to container port 443.
+      caddy_extra_volumes:
+        type: list
+        elements: str
+        default: []
+        description: Additional volumes to mount into the container.

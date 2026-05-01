@@ -1,0 +1,80 @@
+---
+- name: Prepare
+  hosts: all
+  become: true
+  tasks:
+    - name: Set unprivileged port start to 80
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_unprivileged_port_start
+        value: '80'
+        state: present
+        sysctl_set: true
+
+    - name: Install Podman
+      ansible.builtin.include_role:
+        name: podman
+
+    - name: Create caddy_network
+      ansible.builtin.include_role:
+        name: podman_network
+      vars:
+        podman_network_name: caddy_network
+
+    - name: Create test user for http-echo
+      ansible.builtin.user:
+        name: echo-user
+        shell: /bin/bash
+        state: present
+
+    - name: Enable lingering for echo-user
+      ansible.builtin.command: "loginctl enable-linger echo-user"
+      args:
+        creates: "/var/lib/systemd/linger/echo-user"
+
+    - name: Get echo-user UID
+      ansible.builtin.getent:
+        database: passwd
+        key: echo-user
+
+    - name: Set echo-user UID fact
+      ansible.builtin.set_fact:
+        echo_user_uid: "{{ getent_passwd['echo-user'][1] }}"
+
+    - name: Ensure systemd directory exists for echo-user
+      ansible.builtin.file:
+        path: "/home/echo-user/.config/containers/systemd"
+        state: directory
+        owner: echo-user
+        group: echo-user
+        mode: '0700'
+
+    - name: Deploy http-echo quadlet
+      ansible.builtin.copy:
+        dest: "/home/echo-user/.config/containers/systemd/http-echo.container"
+        content: |
+          [Container]
+          ContainerName=http-echo
+          Image=docker.io/hashicorp/http-echo:latest
+          Exec=-text="hello from http-echo" -listen=:5678
+          Network=caddy_network
+          
+          [Service]
+          Restart=always
+          
+          [Install]
+          WantedBy=default.target
+        owner: echo-user
+        group: echo-user
+        mode: '0644'
+
+    - name: Start http-echo service
+      ansible.builtin.systemd:
+        name: http-echo.service
+        state: started
+        enabled: true
+        scope: user
+        daemon_reload: true
+      become: true
+      become_user: echo-user
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ echo_user_uid }}"

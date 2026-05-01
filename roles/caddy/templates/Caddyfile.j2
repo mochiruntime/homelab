@@ -1,0 +1,16 @@
+# Caddyfile managed by Ansible
+
+{% if caddy_raw_config | default('') %}
+{{ caddy_raw_config }}
+{% else %}
+{% for site in caddy_sites | default([]) %}
+{{ site.domain }} {
+    {% if site.proxy | default('') %}
+    reverse_proxy {{ site.proxy }}
+    {% endif %}
+    {% if site.raw | default('') %}
+    {{ site.raw | indent(4) }}
+    {% endif %}
+}
+{% endfor %}
+{% endif %}

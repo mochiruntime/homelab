@@ -1,0 +1,85 @@
+---
+# tasks file for caddy
+
+- name: Assert port binding permissions
+  block:
+    - name: Get unprivileged_port_start sysctl
+      ansible.builtin.command: cat /proc/sys/net/ipv4/ip_unprivileged_port_start
+      register: caddy_sysctl_port_start
+      changed_when: false
+      failed_when: false
+
+    - name: Verify privileged port binding
+      ansible.builtin.assert:
+        that:
+          - (caddy_http_port | int) >= (caddy_sysctl_port_start.stdout | default(1024) | int)
+          - (caddy_https_port | int) >= (caddy_sysctl_port_start.stdout | default(1024) | int)
+        fail_msg: >
+          Binding to ports {{ caddy_http_port }} or {{ caddy_https_port }} is not allowed in rootless mode.
+          The host's net.ipv4.ip_unprivileged_port_start is set to {{ caddy_sysctl_port_start.stdout | default(1024) }}.
+          Please use higher ports or configure the host to allow binding to privileged ports.
+      when: caddy_sysctl_port_start.rc == 0
+
+- name: Ensure caddy user exists
+  ansible.builtin.user:
+    name: "{{ caddy_user }}"
+    shell: /bin/bash
+    state: present
+
+- name: Get caddy user UID
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ caddy_user }}"
+
+- name: Set caddy UID fact
+  ansible.builtin.set_fact:
+    caddy_uid: "{{ getent_passwd[caddy_user][1] }}"
+
+- name: Enable lingering for caddy user
+  ansible.builtin.command: "loginctl enable-linger {{ caddy_user }}"
+  args:
+    creates: "/var/lib/systemd/linger/{{ caddy_user }}"
+
+- name: Ensure directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ caddy_user }}"
+    group: "{{ caddy_user }}"
+    mode: '0700'
+  loop:
+    - "{{ caddy_data_dir }}"
+    - "{{ caddy_config_dir }}"
+    - "/home/{{ caddy_user }}/.config/containers/systemd"
+
+- name: Deploy Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ caddy_config_dir }}/Caddyfile"
+    owner: "{{ caddy_user }}"
+    group: "{{ caddy_user }}"
+    mode: '0644'
+  notify: Restart caddy
+
+- name: Deploy caddy quadlet
+  ansible.builtin.template:
+    src: caddy.container.j2
+    dest: "/home/{{ caddy_user }}/.config/containers/systemd/caddy.container"
+    owner: "{{ caddy_user }}"
+    group: "{{ caddy_user }}"
+    mode: '0644'
+  notify:
+    - Reload user systemd
+    - Restart caddy
+
+- name: Ensure caddy service is started and enabled
+  ansible.builtin.systemd:
+    name: caddy.service
+    state: started
+    enabled: true
+    scope: user
+    daemon_reload: true
+  become: true
+  become_user: "{{ caddy_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ caddy_uid }}"
