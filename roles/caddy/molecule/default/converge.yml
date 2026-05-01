@@ -1,0 +1,12 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Include caddy role
+      ansible.builtin.include_role:
+        name: caddy
+      vars:
+        caddy_network: caddy_network
+        caddy_sites:
+          - domain: ":80"
+            proxy: "http-echo:5678"
