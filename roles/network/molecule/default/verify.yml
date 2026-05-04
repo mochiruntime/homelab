@@ -20,13 +20,20 @@
           - "'inet 192.168.56.30/24' in network_eth2_output.stdout"
         fail_msg: "Static IPs were not applied correctly"
 
-    - name: Read sysctl value
-      ansible.builtin.command: cat /proc/sys/net/ipv4/ip_unprivileged_port_start
-      register: network_sysctl_output
+    - name: Read sysctl values
+      ansible.builtin.command: "cat /proc/sys/net/ipv4/{{ item }}"
+      loop:
+        - ip_unprivileged_port_start
+        - ip_forward
+        - conf/all/src_valid_mark
+      register: network_sysctl_results
       changed_when: false
 
-    - name: Verify sysctl value
+    - name: Verify sysctl values
       ansible.builtin.assert:
         that:
-          - network_sysctl_output.stdout == '80'
-        fail_msg: "Unprivileged port start was not set correctly"
+          - network_sysctl_results.results[0].stdout == '80'
+          - network_sysctl_results.results[1].stdout == '1'
+          - network_sysctl_results.results[2].stdout == '1'
+        fail_msg: "Network sysctl settings were not applied correctly"
+

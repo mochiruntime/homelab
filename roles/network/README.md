@@ -4,7 +4,7 @@ This role manages network configuration on Ubuntu using Netplan and configures k
 
 ## Features
 - **Static IP Assignment**: Configure multiple interfaces with static IPs, gateways, and DNS.
-- **Rootless Podman Support**: Optionally set `net.ipv4.ip_unprivileged_port_start` to allow non-root users to bind to privileged ports.
+- **Rootless Podman Support**: Centrally manage sysctl settings like `net.ipv4.ip_unprivileged_port_start`.
 - **Validation**: Automatically validates Netplan syntax before applying changes.
 
 ## Requirements
@@ -16,7 +16,7 @@ This role manages network configuration on Ubuntu using Netplan and configures k
 | Variable | Description | Required | Default |
 | :--- | :--- | :--- | :--- |
 | `network_interfaces` | List of interface configurations. See [Interface Schema](#interface-schema). | Yes | *None* |
-| `network_unprivileged_port_start` | Lowest port number for unprivileged users. | No | *OS Default* |
+| `network_sysctl_settings` | Dictionary of sysctl keys and values. | No | `{}` |
 
 ### Interface Schema
 
@@ -45,7 +45,9 @@ This role manages network configuration on Ubuntu using Netplan and configures k
   roles:
     - role: network
       vars:
-        network_unprivileged_port_start: 80
+        network_sysctl_settings:
+          net.ipv4.ip_unprivileged_port_start: 80
+          net.ipv4.ip_forward: 1
         network_interfaces:
           - name: enp0s3
             addresses:
@@ -57,4 +59,4 @@ This role manages network configuration on Ubuntu using Netplan and configures k
 
 ## Security Considerations
 - Netplan configuration files are created with `0600` permissions.
-- Lowering the unprivileged port start should be done carefully; only lower it as much as necessary (e.g., to 80).
+- Lowering `ip_unprivileged_port_start` or enabling `ip_forward` has security implications for the host. Use the principle of least privilege.

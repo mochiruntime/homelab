@@ -1,13 +1,14 @@
 ---
-- name: Set unprivileged port start
+- name: Set network sysctls
   ansible.builtin.sysctl:
-    name: net.ipv4.ip_unprivileged_port_start
-    value: "{{ network_unprivileged_port_start | string }}"
+    name: "{{ item.key }}"
+    value: "{{ item.value | string }}"
     state: present
     reload: yes
     sysctl_file: /etc/sysctl.d/99-network-custom.conf
+  loop: "{{ network_sysctl_settings | dict2items }}"
   become: true
-  when: network_unprivileged_port_start is defined
+  when: network_sysctl_settings is defined and network_sysctl_settings | length > 0
 
 - name: Deploy Netplan configuration
   ansible.builtin.template:

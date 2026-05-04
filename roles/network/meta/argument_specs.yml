@@ -28,7 +28,7 @@ argument_specs:
             elements: "str"
             required: false
             description: "List of DNS nameserver IP addresses."
-      network_unprivileged_port_start:
-        type: "int"
+      network_sysctl_settings:
+        type: "dict"
         required: false
-        description: "Lowest port number for unprivileged users. If omitted, the OS default is maintained."
+        description: "Dictionary of sysctl settings to apply (e.g., net.ipv4.ip_forward: 1)."

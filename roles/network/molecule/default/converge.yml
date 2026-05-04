@@ -6,9 +6,12 @@
       ansible.builtin.include_role:
         name: "network"
       vars:
-        network_unprivileged_port_start: 80
+        network_sysctl_settings:
+          net.ipv4.ip_unprivileged_port_start: 80
+          net.ipv4.ip_forward: 1
+          net.ipv4.conf.all.src_valid_mark: 1
         network_interfaces:
           - name: enp0s8
-            addresses: ["192.168.56.10/24"] # Stable IP (same as molecule.yml)
+            addresses: ["192.168.56.10/24"]
           - name: enp0s9
-            addresses: ["192.168.56.30/24"] # Changed IP (.20 -> .30)
+            addresses: ["192.168.56.30/24"]
