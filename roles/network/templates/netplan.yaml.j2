@@ -1,0 +1,22 @@
+# This file is managed by Ansible
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+{% for interface in network_interfaces %}
+    {{ interface.name }}:
+      addresses:
+{% for address in interface.addresses %}
+        - {{ address }}
+{% endfor %}
+{% if interface.gateway4 is defined %}
+      gateway4: {{ interface.gateway4 }}
+{% endif %}
+{% if interface.nameservers is defined %}
+      nameservers:
+        addresses:
+{% for ns in interface.nameservers %}
+          - {{ ns }}
+{% endfor %}
+{% endif %}
+{% endfor %}

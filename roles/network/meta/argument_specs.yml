@@ -1,0 +1,34 @@
+---
+argument_specs:
+  main:
+    short_description: "Manage Ubuntu Network and Sysctl"
+    description: "Configures static IP addresses using Netplan and optionally sets the unprivileged port start."
+    options:
+      network_interfaces:
+        type: "list"
+        elements: "dict"
+        required: true
+        description: "List of network interface configurations."
+        options:
+          name:
+            type: "str"
+            required: true
+            description: "The name of the network interface (e.g., eth0)."
+          addresses:
+            type: "list"
+            elements: "str"
+            required: true
+            description: "List of IP addresses in CIDR notation."
+          gateway4:
+            type: "str"
+            required: false
+            description: "IPv4 gateway address."
+          nameservers:
+            type: "list"
+            elements: "str"
+            required: false
+            description: "List of DNS nameserver IP addresses."
+      network_unprivileged_port_start:
+        type: "int"
+        required: false
+        description: "Lowest port number for unprivileged users. If omitted, the OS default is maintained."

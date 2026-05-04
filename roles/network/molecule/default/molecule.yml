@@ -1,0 +1,21 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: vagrant
+provisioner:
+  name: ansible
+  env:
+    VAGRANT_WSL_ENABLE_WINDOWS_ACCESS: "1"
+verifier:
+  name: ansible
+platforms:
+  - name: instance
+    box: bento/ubuntu-24.04
+    memory: 2048
+    cpus: 1
+    interfaces:
+      - network_name: private_network
+        ip: 192.168.56.10
+      - network_name: private_network
+        ip: 192.168.56.20

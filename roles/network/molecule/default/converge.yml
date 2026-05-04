@@ -1,0 +1,14 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include network role"
+      ansible.builtin.include_role:
+        name: "network"
+      vars:
+        network_unprivileged_port_start: 80
+        network_interfaces:
+          - name: enp0s8
+            addresses: ["192.168.56.10/24"] # Stable IP (same as molecule.yml)
+          - name: enp0s9
+            addresses: ["192.168.56.30/24"] # Changed IP (.20 -> .30)

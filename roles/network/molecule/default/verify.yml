@@ -1,0 +1,32 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Get IP address of enp0s8
+      ansible.builtin.command: ip addr show enp0s8
+      register: network_eth1_output
+      changed_when: false
+
+    - name: Get IP address of enp0s9
+      ansible.builtin.command: ip addr show enp0s9
+      register: network_eth2_output
+      changed_when: false
+
+    - name: Verify IP addresses
+      ansible.builtin.assert:
+        that:
+          - "'inet 192.168.56.10/24' in network_eth1_output.stdout"
+          - "'inet 192.168.56.30/24' in network_eth2_output.stdout"
+        fail_msg: "Static IPs were not applied correctly"
+
+    - name: Read sysctl value
+      ansible.builtin.command: cat /proc/sys/net/ipv4/ip_unprivileged_port_start
+      register: network_sysctl_output
+      changed_when: false
+
+    - name: Verify sysctl value
+      ansible.builtin.assert:
+        that:
+          - network_sysctl_output.stdout == '80'
+        fail_msg: "Unprivileged port start was not set correctly"
