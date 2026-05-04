@@ -1,0 +1,184 @@
+---
+- name: Verify
+  hosts: server
+  gather_facts: false
+  tasks:
+    - name: Get wireguard user UID
+      ansible.builtin.getent:
+        database: passwd
+        key: "wireguard"
+
+    - name: Set wireguard UID fact
+      ansible.builtin.set_fact:
+        wireguard_uid: "{{ getent_passwd['wireguard'][1] }}"
+
+    - name: Check wireguard service status
+      ansible.builtin.systemd:
+        name: wireguard.service
+        scope: user
+      become: true
+      become_user: "wireguard"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ wireguard_uid }}"
+      register: wireguard_service_status
+
+    - name: Assert wireguard service is running
+      ansible.builtin.assert:
+        that:
+          - wireguard_service_status.status.ActiveState == 'active'
+
+    - name: Check for wg0 interface inside container
+      ansible.builtin.command: podman exec wireguard ip addr show wg0
+      become: true
+      become_user: "wireguard"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ wireguard_uid }}"
+      register: wireguard_wg0_output
+      changed_when: false
+
+    - name: Assert wg0 exists
+      ansible.builtin.assert:
+        that:
+          - "'wg0' in wireguard_wg0_output.stdout"
+
+    - name: Check wireguard status inside container
+      ansible.builtin.command: podman exec wireguard wg show
+      become: true
+      become_user: "wireguard"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ wireguard_uid }}"
+      register: wireguard_status_output
+      changed_when: false
+
+    - name: Assert wg show works and has peers
+      ansible.builtin.assert:
+        that:
+          - "'interface: wg0' in wireguard_status_output.stdout"
+          - "'peer:' in wireguard_status_output.stdout"
+
+    - name: Check for peer configurations
+      ansible.builtin.stat:
+        path: "/home/wireguard/config/peer1/peer1.conf"
+      register: wireguard_peer_config
+      become: true
+
+    - name: Assert peer config exists
+      ansible.builtin.assert:
+        that:
+          - wireguard_peer_config.stat.exists
+
+    - name: Check if UDP port is listening on host
+      ansible.builtin.command: ss -ulnp
+      become: true
+      register: wireguard_port_output
+      changed_when: false
+
+    - name: Assert port 51820 is listening
+      ansible.builtin.assert:
+        that:
+          - "':51820' in wireguard_port_output.stdout"
+
+    - name: Read peer1 configuration
+      ansible.builtin.slurp:
+        path: "/home/wireguard/config/peer1/peer1.conf"
+      become: true
+      register: wireguard_peer1_conf
+
+- name: Verify client handshake
+  hosts: client
+  gather_facts: false
+  vars:
+    wireguard_client_interface: wg-molecule
+    wireguard_client_config_path: "/tmp/wg-molecule.conf"
+    wireguard_server_vpn_ip: "10.13.13.1"
+  tasks:
+    - name: Verify the client can establish a tunnel
+      block:
+        - name: Install peer configuration for client test
+          ansible.builtin.copy:
+            dest: "{{ wireguard_client_config_path }}"
+            mode: '0600'
+            content: >-
+              {{
+                hostvars['server']['wireguard_peer1_conf']['content']
+                | b64decode
+                | regex_replace('(?m)^DNS\\s*=.*\\n', '')
+              }}
+          become: true
+
+        - name: Ensure test interface is absent before handshake check
+          ansible.builtin.command: "wg-quick down {{ wireguard_client_config_path }}"
+          become: true
+          changed_when: false
+          failed_when: false
+
+        - name: Bring up WireGuard client interface
+          ansible.builtin.command: "wg-quick up {{ wireguard_client_config_path }}"
+          become: true
+          register: wireguard_client_up
+          changed_when: wireguard_client_up.rc == 0
+
+        - name: Wait for WireGuard client interface to exist
+          ansible.builtin.command: "ip addr show {{ wireguard_client_interface }}"
+          become: true
+          register: wireguard_client_interface_output
+          changed_when: false
+          retries: 5
+          delay: 2
+          until: wireguard_client_interface_output.rc == 0
+
+        - name: Ping WireGuard server over tunnel
+          ansible.builtin.command: "ping -c 3 -W 2 {{ wireguard_server_vpn_ip }}"
+          become: true
+          register: wireguard_client_ping
+          changed_when: false
+          failed_when: false
+
+        - name: Wait for latest handshake on client
+          ansible.builtin.command: "wg show {{ wireguard_client_interface }} latest-handshakes"
+          become: true
+          register: wireguard_client_handshake
+          changed_when: false
+          retries: 5
+          delay: 2
+          until:
+            - (wireguard_client_handshake.stdout.split() | length) >= 2
+            - (wireguard_client_handshake.stdout.split()[1] | int) > 0
+
+        - name: Wait for latest handshake on server
+          ansible.builtin.command: "podman exec wireguard wg show wg0 latest-handshakes"
+          become: true
+          become_user: "wireguard"
+          delegate_to: server
+          environment:
+            XDG_RUNTIME_DIR: "/run/user/{{ hostvars['server']['wireguard_uid'] }}"
+          register: wireguard_server_handshake
+          changed_when: false
+          retries: 5
+          delay: 2
+          until:
+            - (wireguard_server_handshake.stdout.split() | length) >= 2
+            - (wireguard_server_handshake.stdout.split()[1] | int) > 0
+
+        - name: Assert client established a WireGuard session
+          ansible.builtin.assert:
+            that:
+              - (wireguard_client_handshake.stdout.split() | length) >= 2
+              - (wireguard_client_handshake.stdout.split()[1] | int) > 0
+              - (wireguard_server_handshake.stdout.split() | length) >= 2
+              - (wireguard_server_handshake.stdout.split()[1] | int) > 0
+            fail_msg: >-
+              WireGuard peer handshake was not established between the client VM and the server
+              container. Client ping rc={{ wireguard_client_ping.rc }} stdout={{ wireguard_client_ping.stdout | trim }}
+      always:
+        - name: Bring down WireGuard client interface
+          ansible.builtin.command: "wg-quick down {{ wireguard_client_config_path }}"
+          become: true
+          changed_when: false
+          failed_when: false
+
+        - name: Remove temporary client configuration
+          ansible.builtin.file:
+            path: "{{ wireguard_client_config_path }}"
+            state: absent
+          become: true

@@ -1,0 +1,19 @@
+---
+- name: Reload user systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  become: true
+  become_user: "{{ wireguard_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ wireguard_uid }}"
+
+- name: Restart wireguard
+  ansible.builtin.systemd:
+    name: wireguard.service
+    state: restarted
+    scope: user
+  become: true
+  become_user: "{{ wireguard_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ wireguard_uid }}"

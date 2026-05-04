@@ -2,6 +2,9 @@
 network:
   version: 2
   renderer: networkd
+{% if network_interfaces | length == 0 %}
+  ethernets: {}
+{% else %}
   ethernets:
 {% for interface in network_interfaces %}
     {{ interface.name }}:
@@ -20,3 +23,4 @@ network:
 {% endfor %}
 {% endif %}
 {% endfor %}
+{% endif %}

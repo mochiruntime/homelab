@@ -1,0 +1,34 @@
+[Unit]
+Description=WireGuard VPN Container
+After=network-online.target
+
+[Container]
+Image={{ wireguard_image }}
+ContainerName=wireguard
+
+# Capabilities required for WireGuard to manage interfaces inside the namespace
+AddCapability=CAP_NET_ADMIN
+# Required for WireGuard routing (within container namespace)
+Sysctl=net.ipv4.conf.all.src_valid_mark=1
+
+# Environment Variables
+Environment=PUID=0
+Environment=PGID=0
+Environment=TZ={{ wireguard_timezone }}
+Environment=SERVERURL={{ wireguard_server_url }}
+Environment=SERVERPORT={{ wireguard_port }}
+Environment=PEERS={{ wireguard_peers }}
+Environment=PEERDNS={{ wireguard_peer_dns }}
+Environment=INTERNAL_SUBNET={{ wireguard_internal_subnet }}
+Environment=ALLOWEDIPS={{ wireguard_allowed_ips }}
+
+# Persistence
+Volume={{ wireguard_data_dir }}:/config:Z
+# Map the TUN device
+AddDevice=/dev/net/tun:/dev/net/tun
+
+# Networking
+PublishPort={{ wireguard_port }}:51820/udp
+
+[Install]
+WantedBy=default.target

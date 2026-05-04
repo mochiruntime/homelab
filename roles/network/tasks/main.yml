@@ -17,3 +17,4 @@
     mode: '0600'
   become: true
   notify: Apply Netplan
+  when: network_interfaces | length > 0

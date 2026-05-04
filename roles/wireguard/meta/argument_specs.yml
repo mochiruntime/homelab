@@ -1,0 +1,41 @@
+---
+argument_specs:
+  main:
+    short_description: "Deploy rootless WireGuard via Podman Quadlet"
+    description: "Manages the lifecycle of a rootless WireGuard container using Podman and Quadlets."
+    options:
+      wireguard_user:
+        type: "str"
+        default: "wireguard"
+        description: "The host user that will run the rootless container."
+      wireguard_image:
+        type: "str"
+        default: "lscr.io/linuxserver/wireguard:latest"
+        description: "The WireGuard container image to use."
+      wireguard_port:
+        type: "int"
+        default: 51820
+        description: "The UDP port to expose for WireGuard."
+      wireguard_data_dir:
+        type: "str"
+        description: "The directory on the host where WireGuard config will be stored."
+      wireguard_server_url:
+        type: "str"
+        required: true
+        description: "External IP or DNS name for the VPN server."
+      wireguard_peers:
+        type: "raw"
+        default: 1
+        description: "Number of peers to generate or a list of peer names."
+      wireguard_timezone:
+        type: "str"
+        default: "UTC"
+      wireguard_peer_dns:
+        type: "str"
+        default: "auto"
+      wireguard_internal_subnet:
+        type: "str"
+        default: "10.13.13.0"
+      wireguard_allowed_ips:
+        type: "str"
+        default: "0.0.0.0/0"

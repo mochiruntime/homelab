@@ -13,19 +13,19 @@ This role manages network configuration on Ubuntu using Netplan and configures k
 
 ## Role Variables
 
-| Variable | Description | Required | Default |
-| :--- | :--- | :--- | :--- |
-| `network_interfaces` | List of interface configurations. See [Interface Schema](#interface-schema). | Yes | *None* |
-| `network_sysctl_settings` | Dictionary of sysctl keys and values. | No | `{}` |
+| Variable                  | Description                                                                  | Required | Default |
+| :------------------------ | :--------------------------------------------------------------------------- | :------- | :------ |
+| `network_interfaces`      | List of interface configurations. See [Interface Schema](#interface-schema). | No       | `[]`    |
+| `network_sysctl_settings` | Dictionary of sysctl keys and values.                                        | No       | `{}`    |
 
 ### Interface Schema
 
-| Key | Description | Required |
-| :--- | :--- | :--- |
-| `name` | The name of the network interface (e.g., `eth0`). | Yes |
-| `addresses` | List of IP addresses in CIDR notation. | Yes |
-| `gateway4` | IPv4 gateway address. | No |
-| `nameservers` | List of DNS nameserver IP addresses. | No |
+| Key           | Description                                       | Required |
+| :------------ | :------------------------------------------------ | :------- |
+| `name`        | The name of the network interface (e.g., `eth0`). | Yes      |
+| `addresses`   | List of IP addresses in CIDR notation.            | Yes      |
+| `gateway4`    | IPv4 gateway address.                             | No       |
+| `nameservers` | List of DNS nameserver IP addresses.              | No       |
 
 ### Interface Example
 ```yaml

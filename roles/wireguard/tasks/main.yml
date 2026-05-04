@@ -1,0 +1,87 @@
+---
+- name: Ensure wireguard kernel module is loaded
+  community.general.modprobe:
+    name: wireguard
+    state: present
+  become: true
+
+- name: Ensure wireguard module loads on boot
+  ansible.builtin.copy:
+    content: "wireguard\n"
+    dest: /etc/modules-load.d/wireguard.conf
+    mode: '0644'
+  become: true
+
+- name: Verify wireguard user exists
+  ansible.builtin.command: "id {{ wireguard_user }}"
+  register: wireguard_user_check
+  failed_when: false
+  changed_when: false
+
+- name: Fail if wireguard user is missing
+  ansible.builtin.assert:
+    that:
+      - wireguard_user_check.rc == 0
+    fail_msg: >
+      The user '{{ wireguard_user }}' does not exist on the host.
+      Please ensure you have created the user (e.g., using the 'podman_user' role) before running this role.
+
+- name: Read host sysctl requirements
+  ansible.builtin.command: "cat /proc/sys/net/ipv4/{{ item }}"
+  loop:
+    - conf/all/src_valid_mark
+    - ip_forward
+  register: wireguard_sysctl_check
+  changed_when: false
+
+- name: Verify host sysctl requirements
+  ansible.builtin.assert:
+    that:
+      - wireguard_sysctl_check.results[0].stdout == '1'
+      - wireguard_sysctl_check.results[1].stdout == '1'
+    fail_msg: >
+      Host requirements not met. Please ensure the 'network' role has been run with the correct sysctl settings:
+      - net.ipv4.conf.all.src_valid_mark: 1
+      - net.ipv4.ip_forward: 1
+
+- name: Get wireguard user UID
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ wireguard_user }}"
+
+- name: Set wireguard UID fact
+  ansible.builtin.set_fact:
+    wireguard_uid: "{{ getent_passwd[wireguard_user][1] }}"
+
+- name: Ensure configuration directory exists
+  ansible.builtin.file:
+    path: "{{ wireguard_data_dir }}"
+    state: directory
+    owner: "{{ wireguard_user }}"
+    group: "{{ wireguard_user }}"
+    mode: '0700'
+  become: true
+
+- name: Deploy WireGuard quadlet
+  ansible.builtin.template:
+    src: wireguard.container.j2
+    dest: "/home/{{ wireguard_user }}/.config/containers/systemd/wireguard.container"
+    owner: "{{ wireguard_user }}"
+    group: "{{ wireguard_user }}"
+    mode: '0644'
+  become: true
+  notify:
+    - Reload user systemd
+    - Restart wireguard
+
+- name: Ensure WireGuard service is started and enabled
+  ansible.builtin.systemd:
+    name: wireguard.service
+    state: started
+    enabled: true
+    scope: user
+    daemon_reload: true
+  become: true
+  become_user: "{{ wireguard_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ wireguard_uid }}"
