@@ -1,0 +1,34 @@
+---
+- name: Discover Molecule roles
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Find all roles with Molecule scenarios
+      ansible.builtin.shell: find roles -mindepth 2 -maxdepth 2 -name molecule -type d
+      args:
+        chdir: "{{ playbook_dir }}/.."
+      register: molecule_find_output
+      changed_when: false
+
+    - name: Add roles to dynamic inventory
+      ansible.builtin.add_host:
+        name: "molecule_{{ item | dirname | basename }}"
+        ansible_connection: local
+        molecule_role_path: "{{ playbook_dir }}/../{{ item | dirname }}"
+        groups: molecule_roles
+      loop: "{{ molecule_find_output.stdout_lines }}"
+      loop_control:
+        label: "{{ item | dirname | basename }}"
+
+- name: Run Molecule tests in parallel (parallelism = {{ num_tasks }})
+  hosts: molecule_roles
+  gather_facts: false
+  serial: "{{ num_tasks }}"
+  vars:
+    num_tasks: "{{ parallel_jobs | default(8) | int }}"
+  tasks:
+    - name: Run molecule test
+      ansible.builtin.command: molecule test
+      args:
+        chdir: "{{ molecule_role_path }}"
