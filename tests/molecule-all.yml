@@ -21,14 +21,16 @@
       loop_control:
         label: "{{ item | dirname | basename }}"
 
-- name: Run Molecule tests in parallel (parallelism = {{ num_tasks }})
+- name: Run Molecule in parallel (parallelism = {{ num_tasks }})
   hosts: molecule_roles
   gather_facts: false
   serial: "{{ num_tasks }}"
   vars:
     num_tasks: "{{ parallel_jobs | default(8) | int }}"
+    command: "{{ 'destroy' if destroy_only is defined else 'test' }}"
   tasks:
-    - name: Run molecule test
-      ansible.builtin.command: molecule test
+    - name: Run molecule {{ command }}
+      ansible.builtin.command: "molecule {{ command }}"
       args:
         chdir: "{{ molecule_role_path }}"
+      
